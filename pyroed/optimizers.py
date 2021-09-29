@@ -1,19 +1,20 @@
 import math
+import operator
 from collections import OrderedDict
+from functools import reduce
 from typing import Callable, List, Optional
 
 import pyro.distributions as dist
 import torch
-from pyro.distributions import constraints
 
 
 def optimize_simulated_annealing(
     schema: OrderedDict,
+    constraints: list,
+    gibbs_blocks: Optional[List[List[str]]],
     response_fn: Callable,
-    constraint_fn: Callable,
     coefs: dict,
     *,
-    gibbs_blocks: Optional[List[List[str]]] = None,
     temperature_schedule: torch.Tensor,
     log_every=100,
 ) -> torch.Tensor:
@@ -23,12 +24,15 @@ def optimize_simulated_annealing(
     # Set up problem shape.
     P = len(schema)
     num_categories = torch.tensor([len(v) for v in schema.values()])
-    bounds = constraints.integer_interval(0, num_categories)
+    bounds = dist.constraints.integer_interval(0, num_categories)
     if gibbs_blocks is None:
         gibbs_blocks = [[name] for name in schema]  # single site
     assert set(sum(gibbs_blocks, [])) == set(schema), "invalid gibbs blocks"
     name_to_int = {name: i for i, name in enumerate(schema)}
     int_blocks = [[name_to_int[name] for name in block] for block in gibbs_blocks]
+
+    def constraint_fn(seq):
+        return reduce(operator.and_, (c(seq) for c in constraints), True)
 
     # Initialize to a single random uniform feasible state.
     for i in range(10000):
