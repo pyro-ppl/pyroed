@@ -6,7 +6,6 @@ from pyro.optim import ClippedAdam
 
 def fit_svi(
     model,
-    dataset,
     *,
     lr=0.01,
     num_steps=201,
@@ -19,7 +18,7 @@ def fit_svi(
     svi = SVI(model, guide, optim, Trace_ELBO())
     losses = []
     for step in range(num_steps):
-        loss = svi.step(**dataset) / len(dataset["experiment_response"])
+        loss = svi.step()
         losses.append(loss)
         if log_every and step % log_every == 0:
             print(f"svi step {step} loss = {loss:0.6g}")

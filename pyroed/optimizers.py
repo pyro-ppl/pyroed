@@ -17,6 +17,7 @@ def optimize_simulated_annealing(
     coefs: dict,
     *,
     temperature_schedule: torch.Tensor,
+    max_tries=10000,
     log_every=100,
 ) -> torch.Tensor:
     """
@@ -31,10 +32,10 @@ def optimize_simulated_annealing(
     int_blocks = [[name_to_int[name] for name in block] for block in gibbs_blocks]
 
     def constraint_fn(seq):
-        return reduce(operator.and_, (c(schema, seq) for c in constraints), True)
+        return reduce(operator.and_, (c(schema, seq) for c in constraints))
 
     # Initialize to a single random uniform feasible state.
-    for i in range(10000):
+    for i in range(max_tries):
         state = torch.stack(
             [torch.randint(0, Cp, ()) for Cp in num_categories.tolist()]
         )
@@ -44,17 +45,17 @@ def optimize_simulated_annealing(
     if not constraint_fn(state):
         raise ValueError("Failed to find a feasible initial state")
     best_state = state
-    best_response = float(linear_response(schema, coefs, state))
+    best_logits = float(linear_response(schema, coefs, state))
 
     # Anneal, recording the best state.
     for step, temperature in enumerate(temperature_schedule):
         # Choose a random Gibbs block.
         b = int(torch.randint(0, len(gibbs_blocks), ()))
         block = int_blocks[b]
-        Cs = tuple(int(num_categories[p]) for p in block)
+        Cs = [int(num_categories[p]) for p in block]
 
         # Create a cartesian product over choices within the block.
-        nbhd = state.expand(Cs + (P,)).clone()
+        nbhd = state.expand(tuple(reversed(Cs)) + (P,)).clone()
         for i, (p, C) in enumerate(zip(block, Cs)):
             nbhd[..., p] = torch.arange(C).reshape((-1,) + (1,) * i)
         nbhd = nbhd.reshape(-1, P)
@@ -65,26 +66,23 @@ def optimize_simulated_annealing(
             nbhd = nbhd[ok]
         assert bounds.check(nbhd).all()
 
-        # Randomly sample variables in the block wrt an annealed response.
-        response = linear_response(schema, coefs, nbhd)
-        assert response.dim() == 1
-        choice = int(dist.Categorical(logits=response / temperature).sample())
-
-        # Update state with choices within the block.
-        for p, C in zip(block, Cs):
-            state[p] = choice % C
-            choice //= C
+        # Randomly sample variables in the block wrt an annealed logits.
+        logits = linear_response(schema, coefs, nbhd)
+        assert logits.dim() == 1
+        choice = dist.Categorical(logits=logits / temperature).sample()
+        state[:] = nbhd[choice]
         assert bounds.check(state).all()
+        assert constraint_fn(state)
 
         # Save the best response.
-        current_response = float(response[choice])
-        if current_response > best_response:
+        current_logits = float(logits[choice])
+        if current_logits > best_logits:
             best_state = state.clone()
-            best_response = current_response
+            best_logits = current_logits
         if log_every and step % log_every == 0:
             print(
                 f"sa step {step} temp={temperature:0.3g} "
-                f"response={current_response:0.6g}"
+                f"logits={current_logits:0.6g}"
             )
 
     return best_state

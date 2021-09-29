@@ -98,10 +98,6 @@ def model(
             obs=quantized_obs,
         )
         if experiment["response"] is None:  # during simulation
-            eps = 0.5 / quantization_bins
-            pyro.deterministic(
-                "response",
-                (quantized_obs / quantization_bins).clamp(min=eps, max=1 - eps).logit(),
-            )
+            pyro.deterministic("response", quantized_obs / quantization_bins)
 
     return coefs
