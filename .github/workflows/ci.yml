@@ -56,5 +56,5 @@ jobs:
           pip freeze
       - name: Run tests
         run: |
-          test -e test && pytest -vs test || echo "TODO write tests"
+          # pytest -vs test
           python example.py
