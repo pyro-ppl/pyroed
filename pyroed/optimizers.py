@@ -1,18 +1,19 @@
-import math
 import operator
-from collections import OrderedDict
 from functools import reduce
-from typing import Callable, List, Optional
 
 import pyro.distributions as dist
 import torch
 
+from .models import linear_response
+from .typing import Constraints, Features, GibbsBlocks, Schema
 
+
+@torch.no_grad()
 def optimize_simulated_annealing(
-    schema: OrderedDict,
-    constraints: list,
-    gibbs_blocks: Optional[List[List[str]]],
-    response_fn: Callable,
+    schema: Schema,
+    constraints: Constraints,
+    features: Features,
+    gibbs_blocks: GibbsBlocks,
     coefs: dict,
     *,
     temperature_schedule: torch.Tensor,
@@ -25,14 +26,12 @@ def optimize_simulated_annealing(
     P = len(schema)
     num_categories = torch.tensor([len(v) for v in schema.values()])
     bounds = dist.constraints.integer_interval(0, num_categories)
-    if gibbs_blocks is None:
-        gibbs_blocks = [[name] for name in schema]  # single site
     assert set(sum(gibbs_blocks, [])) == set(schema), "invalid gibbs blocks"
     name_to_int = {name: i for i, name in enumerate(schema)}
     int_blocks = [[name_to_int[name] for name in block] for block in gibbs_blocks]
 
     def constraint_fn(seq):
-        return reduce(operator.and_, (c(seq) for c in constraints), True)
+        return reduce(operator.and_, (c(schema, seq) for c in constraints), True)
 
     # Initialize to a single random uniform feasible state.
     for i in range(10000):
@@ -40,14 +39,14 @@ def optimize_simulated_annealing(
             [torch.randint(0, Cp, ()) for Cp in num_categories.tolist()]
         )
         assert bounds.check(state).all()
-        if constraint_fn(schema, state):
+        if constraint_fn(state):
             break
-    if not constraint_fn(schema, state):
+    if not constraint_fn(state):
         raise ValueError("Failed to find a feasible initial state")
+    best_state = state
+    best_response = float(linear_response(schema, coefs, state))
 
     # Anneal, recording the best state.
-    best_state = None
-    best_response = -math.inf
     for step, temperature in enumerate(temperature_schedule):
         # Choose a random Gibbs block.
         b = int(torch.randint(0, len(gibbs_blocks), ()))
@@ -61,13 +60,13 @@ def optimize_simulated_annealing(
         nbhd = nbhd.reshape(-1, P)
 
         # Restrict to feasible states.
-        ok = constraint_fn(schema, nbhd)
+        ok = constraint_fn(nbhd)
         if ok is not True:
             nbhd = nbhd[ok]
         assert bounds.check(nbhd).all()
 
         # Randomly sample variables in the block wrt an annealed response.
-        response = response_fn(coefs, nbhd)
+        response = linear_response(schema, coefs, nbhd)
         assert response.dim() == 1
         choice = int(dist.Categorical(logits=response / temperature).sample())
 
@@ -78,13 +77,14 @@ def optimize_simulated_annealing(
         assert bounds.check(state).all()
 
         # Save the best response.
-        current_response = response[choice].item()
+        current_response = float(response[choice])
         if current_response > best_response:
             best_state = state.clone()
             best_response = current_response
         if log_every and step % log_every == 0:
             print(
-                f"sa step {step} temp={temperature:0.3g} response={current_response:0.6g}"
+                f"sa step {step} temp={temperature:0.3g} "
+                f"response={current_response:0.6g}"
             )
 
     return best_state

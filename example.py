@@ -1,13 +1,16 @@
+import argparse
 from collections import OrderedDict
-from typing import Dict
 
 import pyro
-import pyro.distributions as dist
+import pyro.poutine as poutine
 import torch
 
 from pyroed.constraints import AllDifferent, Iff, IfThen, TakesValue
+from pyroed.models import model
+from pyroed.oed import thompson_sample
+from pyroed.typing import Schema
 
-SCHEMA = OrderedDict(
+SCHEMA: Schema = OrderedDict(
     [
         ("Protein 1", ["Prot1", "Prot2", None]),
         ("Protein 2", ["Prot3", "HLA1", "HLA2", "HLA3", "HLA4"]),
@@ -28,6 +31,8 @@ CONSTRAINTS = [
     IfThen(TakesValue("Protein 2", None), TakesValue("Internal", None)),
     Iff(TakesValue("Protein 2", "Prot3"), TakesValue("2A-2", None)),
 ]
+FEATURES = [[name] for name in SCHEMA]
+FEATURES.append(["Protein 1", "Protein 2"])  # TODO(liz) add a real interaction
 GIBBS_BLOCKS = [
     ["Protein 1", "2A-1"],
     ["Signalling Pep", "EP", "Linker"],
@@ -36,112 +41,53 @@ GIBBS_BLOCKS = [
 ]
 
 
-def response_fn(coefs: Dict[str, torch.Tensor], sequence: torch.Tensor):
-    # Separate individual choices.
-    assert sequence.dtype == torch.long
-    assert sequence.size(-1) == len(SCHEMA)
-    choices = dict(zip(SCHEMA, sequence.unbind(-1)))
-
-    # Coefficients.
-    response = 0.0
-    for name, coef in coefs.items():
-        assert coef.dim() == 1  # a vector of coefficients
-        response = response + coef[choices[name]]
-    return response
-
-
-def model(
-    experiment_sequences: torch.Tensor,  # covariates
-    experiment_response: torch.Tensor,  # response
-    experiment_batch_id: torch.Tensor,  # batch effects
-    *,
-    quantization_bins=100,
-):
-    P = len(SCHEMA)
-    assert experiment_sequences.dtype == torch.int64
-    assert experiment_sequences.dim() == 2
-    assert experiment_sequences.shape[-1] == P
-    N = len(experiment_sequences)
-    if experiment_response is not None:
-        assert torch.is_floating_point(experiment_response)
-        assert experiment_response.shape == (N,)
-        assert 0 <= experiment_response.min()
-        assert experiment_response.max() <= 1
-    assert experiment_batch_id.dtype == torch.int64
-    assert experiment_batch_id.shape == (N,)
-    B = 1 + int(experiment_batch_id.max())
-
-    # How do componentwise coefficients vary among components.
-    coef_scale_loc = pyro.sample("coef_scale_loc", dist.Normal(-2, 1))
-    coef_scale_scale = pyro.sample("coef_scale_scale", dist.LogNormal(0, 1))
-
-    # Component-wise coefficients.
-    coefs = {}
-    for p, (name, choices) in enumerate(SCHEMA.items()):  # morally a plate
-        # How much do coefficients vary within a component.
-        coef_scale = pyro.sample(
-            f"coef_scale_{p}",
-            dist.LogNormal(coef_scale_loc, coef_scale_scale),
-        )
-        # The linear coefficients for component p.
-        # Note this overparametrizes; there should really be
-        # only len(choices) - 1 degrees of freedom.
-        coefs[name] = pyro.sample(
-            f"coef_{p}",
-            dist.Normal(torch.zeros(len(choices)), coef_scale).to_event(1),
-        )
-
-    # TODO add effects of interacting pairs.
-
-    response_loc = response_fn(coefs, experiment_sequences)
-
-    # Observe a noisy response.
-    # This could be changed to counts or whatever.
-    across_batch_scale = pyro.sample("across_batch_scale", dist.LogNormal(0, 1))
-    within_batch_scale = pyro.sample("within_batch_scale", dist.LogNormal(0, 1))
-    with pyro.plate("batch", B):
-        batch_response = pyro.sample(
-            "batch_response", dist.Normal(0, across_batch_scale)
-        )
-        assert batch_response.shape == (B,)
-    with pyro.plate("data", N):
-        logits = pyro.sample(
-            "response",
-            dist.Normal(
-                response_loc + batch_response[experiment_batch_id], within_batch_scale
-            ),
-        )
-        quantized_obs = None
-        if experiment_response is not None:  # during inference
-            quantized_obs = (experiment_response * quantization_bins).round()
-        quantized_obs = pyro.sample(
-            "quantized_response",
-            dist.Binomial(quantization_bins, logits=logits),
-            obs=quantized_obs,
-        )
-        if experiment_response is None:  # during simulation
-            pyro.deterministic("response", quantized_obs / quantization_bins)
-
-    return coefs
-
-
+@torch.no_grad()
 def generate_fake_data(N_per_B=10, B=2):
+    pyro.set_rng_seed()
     N = N_per_B * B
-    experiment_batch_id = (torch.arange(N) // N_per_B,)
-    experiment_sequences = torch.stack(
+    experiment = {}
+    experiment["batch_id"] = (torch.arange(N) // N_per_B,)
+    experiment["sequences"] = torch.stack(
         [torch.randint(0, len(choices), (N,)) for choices in SCHEMA.values()], dim=-1
     )
-    experiment_response = torch.rand(N)  # FIXME run the model
-    return dict(
-        experiment_batch_id=experiment_batch_id,
-        experiment_sequences=experiment_sequences,
-        experiment_response=experiment_response,
+    trace = poutine.trace(model).get_trace(SCHEMA, FEATURES, experiment)
+    truth = truth = {
+        name: site["value"].detach()
+        for name, site in trace.nodes.items()
+        if site["type"] == "sample" and not site["is_observed"]
+        if type(site["fn"]).__name__ != "_Subsample"
+        if name != "batch_response"  # shape varies in time
+    }
+    experiment["response"] = trace.nodes["response"]["value"].detach()
+    return truth, experiment
+
+
+def main(args):
+    truth, experiment = generate_fake_data(args)
+    thompson_sample(
+        SCHEMA,
+        CONSTRAINTS,
+        FEATURES,
+        GIBBS_BLOCKS,
+        experiment,
+        num_svi_steps=args.num_svi_steps,
+        num_sa_steps=args.num_sa_steps,
+        max_tries=args.max_tries,
+        log_every=args.log_every,
+        thompson_temperature=args.thompson_temperature,
     )
-
-
-def main():
     raise NotImplementedError("TODO")
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Design sequences")
+    parser.add_argument("--sequences--per-batch", default=10, type=int)
+    parser.add_argument("--simulate-batches", default=20)
+    parser.add_argument("--seed", default=20210929)
+    parser.add_argument("--num-svi-steps", default=201, type=int)
+    parser.add_argument("--num-sa-steps", default=201, type=int)
+    parser.add_argument("--max-tries", default=1000, type=int)
+    parser.add_argument("--log-every", default=100, type=int)
+    parser.add_argument("--thompson-temperature", default=4.0, type=float)
+    args = parser.parse_args()
+    main(args)
