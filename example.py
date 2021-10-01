@@ -54,7 +54,7 @@ def generate_fake_data(args):
     )
     experiment["response"] = None
     trace = poutine.trace(model).get_trace(SCHEMA, FEATURES, experiment)
-    truth = truth = {
+    truth = {
         name: site["value"].detach()
         for name, site in trace.nodes.items()
         if site["type"] == "sample" and not site["is_observed"]

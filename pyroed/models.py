@@ -61,7 +61,7 @@ def model(
             dist.LogNormal(coef_scale_loc, coef_scale_scale),
         )
         # Linear coefficients. Note this overparametrizes; there are only
-        # len(choices) - 1 degrees of freedom and 1 nuissance dim.
+        # len(choices) - 1 degrees of freedom and 1 nuisance dim.
         coefs[tuple(names)] = pyro.sample(
             f"coef_{suffix}",
             dist.Normal(torch.zeros(shape), coef_scale).to_event(len(shape)),
