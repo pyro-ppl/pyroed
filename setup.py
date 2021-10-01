@@ -29,6 +29,7 @@ setup(
     author_email="fobermey@broadinstitute.org",
     install_requires=[
         "pyro-ppl>=1.7",
+        "pandas",
     ],
     extras_require={
         "test": [

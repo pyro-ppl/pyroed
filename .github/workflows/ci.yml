@@ -56,5 +56,4 @@ jobs:
           pip freeze
       - name: Run tests
         run: |
-          # pytest -vs test
-          python example.py
+          make test

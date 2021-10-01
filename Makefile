@@ -12,6 +12,7 @@ format: FORCE
 	isort .
 
 test: lint FORCE
-	pytest -v -n auto test
+	python example.py
+	# pytest -v -n auto test
 
 FORCE:

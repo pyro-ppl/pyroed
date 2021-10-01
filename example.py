@@ -1,6 +1,7 @@
 # type: ignore
 
 import argparse
+import warnings
 from collections import OrderedDict
 
 import pyro
@@ -44,6 +45,7 @@ GIBBS_BLOCKS = [
 
 @torch.no_grad()
 def generate_fake_data(args):
+    print("Generating fake data")
     pyro.set_rng_seed(args.seed)
     B = args.simulate_batches
     N = args.sequences_per_batch * B
@@ -65,9 +67,41 @@ def generate_fake_data(args):
     return truth, experiment
 
 
+def load_experiment(filename):
+    import pandas as pd
+
+    df = pd.read_csv(filename, sep="\t")
+
+    # Load response.
+    N = len(df["Response"])
+    response = torch.zeros(N)
+    response[:] = df["Response"].numpy()
+
+    # Load sequences.
+    sequences = torch.zeros(N, len(SCHEMA), dtype=torch.long)
+    for i, (name, values) in enumerate(SCHEMA.items()):
+        sequences[:, i] = [values.index(v) for v in df[name]]
+
+    # Optionally load batch id.
+    batch_id = torch.zeros(N, dtype=torch.long)
+    if "Batch ID" in df:
+        batch_id[:] = df["Batch ID"].numpy()
+    else:
+        warnings.warn("Found no 'Batch ID' column, assuming a single batch")
+
+    return {
+        "sequences": sequences,
+        "batch_id": batch_id,
+        "response": response,
+    }
+
+
 def main(args):
     pyro.set_rng_seed(args.seed)
-    truth, experiment = generate_fake_data(args)
+    if args.tsv_file_in:
+        experiment = load_experiment(args.tsv_file_in)
+    else:
+        truth, experiment = generate_fake_data(args)
     design = thompson_sample(
         SCHEMA,
         CONSTRAINTS,
@@ -88,6 +122,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Design sequences")
+    parser.add_argument("--tsv-file-in")
     parser.add_argument("--sequences-per-batch", default=10, type=int)
     parser.add_argument("--simulate-batches", default=20)
     parser.add_argument("--seed", default=20210929)
