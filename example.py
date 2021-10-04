@@ -7,6 +7,7 @@ from collections import OrderedDict
 import pandas as pd
 import pyro
 import torch
+import torch.multiprocessing as mp
 
 from pyroed.constraints import AllDifferent, Iff, IfThen, TakesValue
 from pyroed.oed import thompson_sample
@@ -94,11 +95,16 @@ def main(args):
         FEATURES,
         GIBBS_BLOCKS,
         experiment,
-        num_svi_steps=args.num_svi_steps,
-        num_sa_steps=args.num_sa_steps,
+        inference="mcmc" if args.mcmc else "svi",
+        mcmc_num_samples=args.mcmc_num_samples,
+        mcmc_warmup_steps=args.mcmc_warmup_steps,
+        mcmc_num_chains=args.mcmc_num_chains,
+        svi_num_steps=args.svi_num_steps,
+        sa_num_steps=args.sa_num_steps,
         max_tries=args.max_tries,
         thompson_temperature=args.thompson_temperature,
         log_every=args.log_every,
+        jit_compile=args.jit,
     )
     print("Design:")
     for row in sorted(design):
@@ -117,10 +123,17 @@ if __name__ == "__main__":
     parser.add_argument("--simulate-batches", default=20)
 
     # Algorithm parameters.
-    parser.add_argument("--num-svi-steps", default=201, type=int)
-    parser.add_argument("--num-sa-steps", default=201, type=int)
     parser.add_argument("--max-tries", default=1000, type=int)
     parser.add_argument("--thompson-temperature", default=4.0, type=float)
+    parser.add_argument("--mcmc", default=False, action="store_true")
+    parser.add_argument("--svi", dest="mcmc", action="store_false")
+    parser.add_argument("--mcmc-num-samples", default=500, type=int)
+    parser.add_argument("--mcmc-warmup-steps", default=500, type=int)
+    parser.add_argument("--mcmc-num-chains", default=min(4, mp.cpu_count()), type=int)
+    parser.add_argument("--svi-num-steps", default=201, type=int)
+    parser.add_argument("--sa-num-steps", default=201, type=int)
+    parser.add_argument("--jit", default=True, action="store_true")
+    parser.add_argument("--nojit", dest="jit", action="store_false")
     parser.add_argument("--seed", default=20210929)
     parser.add_argument("--log-every", default=100, type=int)
     args = parser.parse_args()

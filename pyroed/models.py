@@ -9,10 +9,11 @@ from .typing import Coefs, Features, Schema
 
 
 def linear_response(schema: Schema, coefs: Coefs, sequence: torch.Tensor):
-    assert isinstance(schema, OrderedDict)
-    assert isinstance(coefs, dict)
-    assert sequence.dtype == torch.long
-    assert sequence.size(-1) == len(schema)
+    if not torch._C._get_tracing_state():
+        assert isinstance(schema, OrderedDict)
+        assert isinstance(coefs, dict)
+        assert sequence.dtype == torch.long
+        assert sequence.size(-1) == len(schema)
     choices = dict(zip(schema, sequence.unbind(-1)))
 
     result = torch.tensor(0.0)
@@ -33,18 +34,19 @@ def model(
     quantization_bins=100,
 ):
     P = len(schema)
-    assert experiment["sequences"].dtype == torch.int64
-    assert experiment["sequences"].dim() == 2
-    assert experiment["sequences"].shape[-1] == P
-    N = len(experiment["sequences"])
-    if experiment["response"] is not None:
-        assert torch.is_floating_point(experiment["response"])
-        assert experiment["response"].shape == (N,)
-        assert 0 <= experiment["response"].min()
-        assert experiment["response"].max() <= 1
-    assert experiment["batch_id"].dtype == torch.int64
-    assert experiment["batch_id"].shape == (N,)
-    B = 1 + int(experiment["batch_id"].max())
+    N = experiment["sequences"].size(0)
+    B = 1 + experiment["batch_id"].max()
+    if not torch._C._get_tracing_state():
+        assert experiment["sequences"].dtype == torch.int64
+        assert experiment["sequences"].dim() == 2
+        assert experiment["sequences"].shape[-1] == P
+        if experiment["response"] is not None:
+            assert torch.is_floating_point(experiment["response"])
+            assert experiment["response"].shape == (N,)
+            assert 0 <= experiment["response"].min()
+            assert experiment["response"].max() <= 1
+        assert experiment["batch_id"].dtype == torch.int64
+        assert experiment["batch_id"].shape == (N,)
     name_to_int = {name: i for i, name in enumerate(schema)}
 
     # Hierarchically sample linear coefficients.
@@ -78,7 +80,8 @@ def model(
         batch_response = pyro.sample(
             "batch_response", dist.Normal(0, across_batch_scale)
         )
-        assert batch_response.shape == (B,)
+        if not torch._C._get_tracing_state():
+            assert batch_response.shape == (B,)
     with pyro.plate("data", N):
         logits = pyro.sample(
             "logits",
