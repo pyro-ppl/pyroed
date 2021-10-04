@@ -4,6 +4,7 @@ import argparse
 import warnings
 from collections import OrderedDict
 
+import pandas as pd
 import pyro
 import pyro.poutine as poutine
 import torch
@@ -16,7 +17,7 @@ SCHEMA = OrderedDict()
 SCHEMA["Protein 1"] = ["Prot1", "Prot2", None]
 SCHEMA["Protein 2"] = ["Prot3", "HLA1", "HLA2", "HLA3", "HLA4", None]
 SCHEMA["Signalling Pep"] = ["Sig1", "Sig2", None]
-SCHEMA["EP"] = [f"EP{i}" for i in range(1, 10 + 1)] + [None]
+SCHEMA["EP"] = [f"Ep{i}" for i in range(1, 10 + 1)] + [None]
 SCHEMA["Linker"] = ["Link1", None]
 SCHEMA["Internal"] = ["Int1", "Int2", "Int3", "Int3", None]
 SCHEMA["2A-1"] = ["twoa1", "twoa2", None]
@@ -67,25 +68,33 @@ def generate_fake_data(args):
     return truth, experiment
 
 
-def load_experiment(filename):
-    import pandas as pd
-
+def load_experiment(
+    filename,
+    schema,
+    *,
+    response_column: str = "Response",
+):
     df = pd.read_csv(filename, sep="\t")
 
     # Load response.
-    N = len(df["Response"])
+    df = df[~df[response_column].isna()]
+    N = len(df[response_column])
     response = torch.zeros(N)
-    response[:] = df["Response"].numpy()
+    response[:] = torch.tensor(
+        [float(cell.strip("%")) / 100 for cell in df[response_column]]
+    )
 
     # Load sequences.
     sequences = torch.zeros(N, len(SCHEMA), dtype=torch.long)
     for i, (name, values) in enumerate(SCHEMA.items()):
-        sequences[:, i] = [values.index(v) for v in df[name]]
+        sequences[:, i] = torch.tensor(
+            [values.index(v if isinstance(v, str) else None) for v in df[name]]
+        )
 
     # Optionally load batch id.
     batch_id = torch.zeros(N, dtype=torch.long)
     if "Batch ID" in df:
-        batch_id[:] = df["Batch ID"].numpy()
+        batch_id[:] = df["Batch ID"].to_numpy()
     else:
         warnings.warn("Found no 'Batch ID' column, assuming a single batch")
 
@@ -99,7 +108,11 @@ def load_experiment(filename):
 def main(args):
     pyro.set_rng_seed(args.seed)
     if args.tsv_file_in:
-        experiment = load_experiment(args.tsv_file_in)
+        experiment = load_experiment(
+            args.tsv_file_in,
+            SCHEMA,
+            response_column=args.response_column,
+        )
     else:
         truth, experiment = generate_fake_data(args)
     design = thompson_sample(
@@ -123,6 +136,7 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Design sequences")
     parser.add_argument("--tsv-file-in")
+    parser.add_argument("--response-column", default="Amount Expression Output 1")
     parser.add_argument("--sequences-per-batch", default=10, type=int)
     parser.add_argument("--simulate-batches", default=20)
     parser.add_argument("--seed", default=20210929)
