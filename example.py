@@ -44,21 +44,15 @@ GIBBS_BLOCKS = [
 ]
 
 
-def load_experiment(
-    filename,
-    schema,
-    *,
-    response_column: str = "Response",
-):
+def load_experiment(filename, schema):
     df = pd.read_csv(filename, sep="\t")
 
     # Load response.
-    df = df[~df[response_column].isna()]
-    N = len(df[response_column])
+    col = "Amount Expression Output 1"
+    df = df[~df[col].isna()]  # Filter to rows where response was observed.
+    N = len(df[col])
     response = torch.zeros(N)
-    response[:] = torch.tensor(
-        [float(cell.strip("%")) / 100 for cell in df[response_column]]
-    )
+    response[:] = torch.tensor([float(cell.strip("%")) / 100 for cell in df[col]])
 
     # Load sequences.
     sequences = torch.zeros(N, len(SCHEMA), dtype=torch.long)
@@ -68,11 +62,12 @@ def load_experiment(
         )
 
     # Optionally load batch id.
+    col = "Batch ID"
     batch_id = torch.zeros(N, dtype=torch.long)
-    if "Batch ID" in df:
-        batch_id[:] = df["Batch ID"].to_numpy()
+    if col in df:
+        batch_id[:] = df[col].to_numpy()
     else:
-        warnings.warn("Found no 'Batch ID' column, assuming a single batch")
+        warnings.warn(f"Found no '{col}' column, assuming a single batch")
 
     return {
         "sequences": sequences,
@@ -86,11 +81,7 @@ def main(args):
 
     if args.tsv_file_in:
         print(f"Loading data from {args.tsv_file_in}")
-        experiment = load_experiment(
-            args.tsv_file_in,
-            SCHEMA,
-            response_column=args.response_column,
-        )
+        experiment = load_experiment(args.tsv_file_in, SCHEMA)
     else:
         print("Generating fake data")
         truth, experiment = generate_fake_data(
@@ -117,15 +108,20 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Design sequences")
+
+    # Data files.
     parser.add_argument("--tsv-file-in")
-    parser.add_argument("--response-column", default="Amount Expression Output 1")
+
+    # Simulation parameters.
     parser.add_argument("--sequences-per-batch", default=10, type=int)
     parser.add_argument("--simulate-batches", default=20)
-    parser.add_argument("--seed", default=20210929)
+
+    # Algorithm parameters.
     parser.add_argument("--num-svi-steps", default=201, type=int)
     parser.add_argument("--num-sa-steps", default=201, type=int)
     parser.add_argument("--max-tries", default=1000, type=int)
     parser.add_argument("--thompson-temperature", default=4.0, type=float)
+    parser.add_argument("--seed", default=20210929)
     parser.add_argument("--log-every", default=100, type=int)
     args = parser.parse_args()
     main(args)
