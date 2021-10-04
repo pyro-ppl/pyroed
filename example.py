@@ -6,13 +6,13 @@ from collections import OrderedDict
 
 import pandas as pd
 import pyro
-import pyro.poutine as poutine
 import torch
 
 from pyroed.constraints import AllDifferent, Iff, IfThen, TakesValue
-from pyroed.models import model
 from pyroed.oed import thompson_sample
+from pyroed.testing import generate_fake_data
 
+# Specify the design space via SCHEMA, CONSTRAINTS, FEATURES, and GIBBS_BLOCKS.
 SCHEMA = OrderedDict()
 SCHEMA["Protein 1"] = ["Prot1", "Prot2", None]
 SCHEMA["Protein 2"] = ["Prot3", "HLA1", "HLA2", "HLA3", "HLA4", None]
@@ -42,30 +42,6 @@ GIBBS_BLOCKS = [
     ["2A-1", "2A-2", "2A-3"],
     ["Protein 2", "Internal", "2A-2"],
 ]
-
-
-@torch.no_grad()
-def generate_fake_data(args):
-    print("Generating fake data")
-    pyro.set_rng_seed(args.seed)
-    B = args.simulate_batches
-    N = args.sequences_per_batch * B
-    experiment = {}
-    experiment["batch_id"] = torch.arange(N) // args.sequences_per_batch
-    experiment["sequences"] = torch.stack(
-        [torch.randint(0, len(choices), (N,)) for choices in SCHEMA.values()], dim=-1
-    )
-    experiment["response"] = None
-    trace = poutine.trace(model).get_trace(SCHEMA, FEATURES, experiment)
-    truth = {
-        name: site["value"].detach()
-        for name, site in trace.nodes.items()
-        if site["type"] == "sample" and not site["is_observed"]
-        if type(site["fn"]).__name__ != "_Subsample"
-        if name != "batch_response"  # shape varies in time
-    }
-    experiment["response"] = trace.nodes["response"]["value"].detach()
-    return truth, experiment
 
 
 def load_experiment(
@@ -107,14 +83,20 @@ def load_experiment(
 
 def main(args):
     pyro.set_rng_seed(args.seed)
+
     if args.tsv_file_in:
+        print(f"Loading data from {args.tsv_file_in}")
         experiment = load_experiment(
             args.tsv_file_in,
             SCHEMA,
             response_column=args.response_column,
         )
     else:
-        truth, experiment = generate_fake_data(args)
+        print("Generating fake data")
+        truth, experiment = generate_fake_data(
+            SCHEMA, FEATURES, args.sequences_per_batch, args.simulate_batches
+        )
+
     design = thompson_sample(
         SCHEMA,
         CONSTRAINTS,

@@ -30,5 +30,4 @@ def fit_svi(
         plt.xlabel("SVI step")
         plt.ylabel("loss")
 
-    # TODO return samples rather than a guide, to be consistent with SVI
     return guide
