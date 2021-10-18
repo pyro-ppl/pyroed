@@ -1,86 +1,67 @@
 # type: ignore
 
 import argparse
-import warnings
 from collections import OrderedDict
 
-import pandas as pd
 import pyro
 import torch
 import torch.multiprocessing as mp
 
-from pyroed.constraints import AllDifferent, Iff, IfThen, TakesValue
-from pyroed.datasets.data import get_tf_data
+from pyroed.datasets.data import load_tf_data
+from pyroed.oed import thompson_sample
 
 # Specify the design space via SCHEMA, CONSTRAINTS, FEATURES, and GIBBS_BLOCKS.
-SCHEMA = OrderedDict()
-SCHEMA["Protein 1"] = ["Prot1", "Prot2", None]
-SCHEMA["Protein 2"] = ["Prot3", "HLA1", "HLA2", "HLA3", "HLA4", None]
-SCHEMA["Signalling Pep"] = ["Sig1", "Sig2", None]
-SCHEMA["EP"] = [f"Ep{i}" for i in range(1, 10 + 1)] + [None]
-SCHEMA["Linker"] = ["Link1", None]
-SCHEMA["Internal"] = ["Int1", "Int2", "Int3", "Int3", None]
-SCHEMA["2A-1"] = ["twoa1", "twoa2", None]
-SCHEMA["2A-2"] = ["twoa3", "twoa4", None]
-SCHEMA["2A-3"] = [f"twoa{i}" for i in range(1, 7 + 1)]
+nucleotides = ["A", "T", "C", "G"]
+SCHEMA = OrderedDict((f"N{i}", nucleotides) for i in range(8))
 
-CONSTRAINTS = [
-    AllDifferent("2A-1", "2A-2", "2A-3"),
-    Iff(TakesValue("Protein 1", None), TakesValue("2A-1", None)),
-    Iff(TakesValue("Signalling Pep", None), TakesValue("EP", None)),
-    Iff(TakesValue("EP", None), TakesValue("Linker", None)),
-    IfThen(TakesValue("Protein 2", None), TakesValue("Internal", None)),
-    Iff(TakesValue("Protein 2", "Prot3"), TakesValue("2A-2", None)),
-]
+CONSTRAINTS = []
 
 FEATURES = [[name] for name in SCHEMA]
-FEATURES.append(["Protein 1", "Protein 2"])  # TODO(liz) add a real interaction
 
 GIBBS_BLOCKS = [
-    ["Protein 1", "2A-1"],
-    ["Signalling Pep", "EP", "Linker"],
-    ["2A-1", "2A-2", "2A-3"],
-    ["Protein 2", "Internal", "2A-2"],
+    ["N0", "N1", "N2"],
+    ["N1", "N2", "N3"],
+    ["N2", "N3", "N4"],
+    ["N3", "N4", "N5"],
+    ["N4", "N5", "N6"],
+    ["N5", "N6", "N7"],
 ]
-
-
-def load_experiment(filename, schema):
-    df = pd.read_csv(filename, sep="\t")
-
-    # Load response.
-    col = "Amount Expression Output 1"
-    df = df[~df[col].isna()]  # Filter to rows where response was observed.
-    N = len(df[col])
-    response = torch.zeros(N)
-    response[:] = torch.tensor([float(cell.strip("%")) / 100 for cell in df[col]])
-
-    # Load sequences.
-    sequences = torch.zeros(N, len(SCHEMA), dtype=torch.long)
-    for i, (name, values) in enumerate(SCHEMA.items()):
-        sequences[:, i] = torch.tensor(
-            [values.index(v if isinstance(v, str) else None) for v in df[name]]
-        )
-
-    # Optionally load batch id.
-    col = "Batch ID"
-    batch_id = torch.zeros(N, dtype=torch.long)
-    if col in df:
-        batch_id[:] = df[col].to_numpy()
-    else:
-        warnings.warn(f"Found no '{col}' column, assuming a single batch")
-
-    return {
-        "sequences": sequences,
-        "batch_id": batch_id,
-        "response": response,
-    }
 
 
 def main(args):
     pyro.set_rng_seed(args.seed)
 
-    x, y = get_tf_data()
-    print("xy", x.shape, y.shape)
+    complete_experiment = load_tf_data()
+
+    # Choose an initial batch.
+    complete_size = len(complete_experiment["response"])
+    complete_ids = torch.randperm(complete_size)[: args.sequences_per_batch]
+    experiment = {k: v[complete_ids] for k, v in complete_experiment.items()}
+
+    # Perform first active learning step.
+    design = thompson_sample(
+        SCHEMA,
+        CONSTRAINTS,
+        FEATURES,
+        GIBBS_BLOCKS,
+        experiment,
+        inference="mcmc" if args.mcmc else "svi",
+        mcmc_num_samples=args.mcmc_num_samples,
+        mcmc_warmup_steps=args.mcmc_warmup_steps,
+        mcmc_num_chains=args.mcmc_num_chains,
+        svi_num_steps=args.svi_num_steps,
+        sa_num_steps=args.sa_num_steps,
+        max_tries=args.max_tries,
+        thompson_temperature=args.thompson_temperature,
+        log_every=args.log_every,
+        jit_compile=args.jit,
+    )
+    print("Design:")
+    for row in sorted(design):
+        cells = [values[i] for values, i in zip(SCHEMA.values(), row)]
+        print("\t".join("-" if c is None else c for c in cells))
+
+    # TODO perform more steps.
 
 
 if __name__ == "__main__":

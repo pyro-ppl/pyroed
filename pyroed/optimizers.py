@@ -32,6 +32,8 @@ def optimize_simulated_annealing(
     int_blocks = [[name_to_int[name] for name in block] for block in gibbs_blocks]
 
     def constraint_fn(seq):
+        if not constraints:
+            return True
         return reduce(operator.and_, (c(schema, seq) for c in constraints))
 
     # Initialize to a single random uniform feasible state.
