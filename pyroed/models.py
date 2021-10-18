@@ -35,7 +35,7 @@ def model(
 ):
     P = len(schema)
     N = experiment["sequences"].size(0)
-    B = 1 + experiment["batch_id"].max()
+    B = 1 + int(experiment["batch_id"].max())
     if not torch._C._get_tracing_state():
         assert experiment["sequences"].dtype == torch.int64
         assert experiment["sequences"].dim() == 2
@@ -73,15 +73,19 @@ def model(
     response_loc = linear_response(schema, coefs, experiment["sequences"])
 
     # Observe a noisy response.
-    # This could be changed to counts or whatever.
-    across_batch_scale = pyro.sample("across_batch_scale", dist.LogNormal(0, 1))
+    # This likelihood could be generalized to counts or whatever.
     within_batch_scale = pyro.sample("within_batch_scale", dist.LogNormal(0, 1))
-    with pyro.plate("batch", B):
-        batch_response = pyro.sample(
-            "batch_response", dist.Normal(0, across_batch_scale)
-        )
-        if not torch._C._get_tracing_state():
-            assert batch_response.shape == (B,)
+    if B == 1:
+        batch_response = torch.zeros(B)
+    else:
+        # Model batch effects.
+        across_batch_scale = pyro.sample("across_batch_scale", dist.LogNormal(0, 1))
+        with pyro.plate("batch", B):
+            batch_response = pyro.sample(
+                "batch_response", dist.Normal(0, across_batch_scale)
+            )
+            if not torch._C._get_tracing_state():
+                assert batch_response.shape == (B,)
     with pyro.plate("data", N):
         logits = pyro.sample(
             "logits",
