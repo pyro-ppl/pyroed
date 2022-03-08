@@ -13,7 +13,7 @@ def fit_svi(
     *,
     lr=0.01,
     num_steps=201,
-    jit_compile=True,
+    jit_compile=False,
     log_every=100,
     plot=False,
 ) -> Callable[[], Dict[str, torch.Tensor]]:
@@ -45,7 +45,7 @@ def fit_mcmc(
     num_samples=500,
     warmup_steps=500,
     num_chains=1,
-    jit_compile=True,
+    jit_compile=False,
 ) -> Callable[[], Dict[str, torch.Tensor]]:
     kernel = NUTS(model, jit_compile=jit_compile)
     mcmc = MCMC(

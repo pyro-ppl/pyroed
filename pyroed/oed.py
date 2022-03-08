@@ -26,7 +26,7 @@ def thompson_sample(
     sa_num_steps=1000,
     max_tries=1000,
     thompson_temperature=4.0,
-    jit_compile=True,
+    jit_compile=False,
     log_every=100,
 ) -> Set[Tuple[int, ...]]:
     """
