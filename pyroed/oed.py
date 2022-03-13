@@ -51,6 +51,7 @@ def thompson_sample(
                 num_steps=svi_num_steps,
                 jit_compile=jit_compile,
                 plot=False,
+                log_every=log_every,
             )
         elif inference == "mcmc":
             sampler = fit_mcmc(
@@ -66,7 +67,7 @@ def thompson_sample(
     # Repeatedly sample coefficients from the posterior,
     # and for each sample find an optimal sequence.
     with torch.no_grad():
-        logits = experiment["response"].clamp(min=0.005, max=0.995).logit()
+        logits = experiment["response"].clamp(min=0.001, max=0.999).logit()
         extent = logits.max() - logits.min()
         temperature_schedule = extent * torch.logspace(0.0, -2.0, sa_num_steps)
 
@@ -74,7 +75,8 @@ def thompson_sample(
         design: Set[Tuple[int, ...]] = set()
 
         for i in range(max_tries):
-            print(".", end="", flush=True)
+            if log_every:
+                print(".", end="", flush=True)
             with poutine.condition(data=sampler()):
                 coefs = model(schema, features, experiment)
 
