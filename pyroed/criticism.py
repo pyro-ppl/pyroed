@@ -8,7 +8,7 @@ from pyro import poutine
 
 from .inference import fit_mcmc, fit_svi
 from .models import linear_response, model
-from .typing import Constraints, Features, GibbsBlocks, Schema
+from .typing import Blocks, Constraints, Schema
 
 matplotlib.use("Agg")
 
@@ -16,8 +16,8 @@ matplotlib.use("Agg")
 def criticize(
     schema: Schema,
     constraints: Constraints,
-    features: Features,
-    gibbs_blocks: GibbsBlocks,
+    features: Blocks,
+    gibbs_blocks: Blocks,
     experiment,
     test_data,
     *,

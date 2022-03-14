@@ -4,13 +4,13 @@ import pyro.poutine as poutine
 import torch
 
 from .models import model
-from .typing import Features, Schema
+from .typing import Blocks, Schema
 
 
 @torch.no_grad()
 def generate_fake_data(
     schema: Schema,
-    features: Features,
+    features: Blocks,
     sequences_per_batch: int,
     num_batches: int = 1,
 ):

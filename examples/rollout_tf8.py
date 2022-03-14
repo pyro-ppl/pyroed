@@ -21,8 +21,8 @@ singletons = [[name] for name in SCHEMA]
 pairs = [list(ns) for ns in zip(SCHEMA, list(SCHEMA)[1:])]
 triples = [list(ns) for ns in zip(SCHEMA, list(SCHEMA)[1:], list(SCHEMA)[2:])]
 
-SINGLETON_FEATURES = singletons
-PAIRWISE_FEATURES = singletons + pairs
+SINGLETON_BLOCKS = singletons
+PAIRWISE_BLOCKS = singletons + pairs
 GIBBS_BLOCKS = triples
 
 
@@ -38,12 +38,15 @@ def update_experiment(experiment: dict, design: set, data: dict) -> dict:
 
 
 def make_design(
-    experiment: dict, design_size: int, thompson_temperature: float, features: list
+    experiment: dict,
+    design_size: int,
+    thompson_temperature: float,
+    feature_blocks: list,
 ) -> set:
     return thompson_sample(
         SCHEMA,
         CONSTRAINTS,
-        features,
+        feature_blocks,
         GIBBS_BLOCKS,
         experiment,
         design_size=design_size,
@@ -76,7 +79,7 @@ def main(args):
             experiments[-1],
             args.num_sequences_per_batch,
             args.thompson_temperature,
-            SINGLETON_FEATURES if args.features == "singleton" else PAIRWISE_FEATURES,
+            SINGLETON_BLOCKS if args.features == "singleton" else PAIRWISE_BLOCKS,
         )
         experiments.append(update_experiment(experiments[-1], design, data))
         print(

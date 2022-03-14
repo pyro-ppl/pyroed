@@ -5,7 +5,7 @@ import torch
 
 from .constraints import Constraint
 from .oed import thompson_sample
-from .typing import Constraints, Features, GibbsBlocks, Schema
+from .typing import Blocks, Constraints, Schema
 
 
 def encode_design(
@@ -36,24 +36,24 @@ def decode_design(schema: Schema, sequences: torch.Tensor) -> List[List[Optional
 
 
 def get_next_design(
+    *,
     schema: Schema,
     constraints: Constraints,
-    features: Features,
-    gibbs_blocks: GibbsBlocks,
+    feature_blocks: Blocks,
+    gibbs_blocks: Blocks,
     experiment: Dict[str, torch.Tensor],
-    *,
     design_size: int = 10,
     config: Optional[dict] = None,
 ) -> Set[Tuple[int, ...]]:
     if __debug__:
-        validate(schema, constraints, features, gibbs_blocks, experiment)
+        validate(schema, constraints, feature_blocks, gibbs_blocks, experiment)
 
     if config is None:
         config = {}
     return thompson_sample(
         schema,
         constraints,
-        features,
+        feature_blocks,
         gibbs_blocks,
         experiment,
         design_size=design_size,
@@ -64,8 +64,8 @@ def get_next_design(
 def validate(
     schema: Schema,
     constraints: Constraints,
-    features: Features,
-    gibbs_blocks: GibbsBlocks,
+    feature_blocks: Blocks,
+    gibbs_blocks: Blocks,
     experiment: Optional[Dict[str, torch.Tensor]] = None,
 ) -> None:
     # Validate schema.
@@ -82,13 +82,15 @@ def validate(
     for constraint in constraints:
         assert isinstance(constraint, Constraint)
 
-    # Validate features.
-    assert isinstance(features, list)
-    for block in features:
+    # Validate feature_blocks.
+    assert isinstance(feature_blocks, list)
+    for block in feature_blocks:
         assert isinstance(block, list)
         for col in block:
             assert col in schema
-    assert len({tuple(f) for f in features}) == len(features), "duplicate features"
+    assert len({tuple(f) for f in feature_blocks}) == len(
+        feature_blocks
+    ), "duplicate feature_blocks"
 
     # Validate gibbs_blocks.
     assert isinstance(gibbs_blocks, list)

@@ -5,7 +5,7 @@ import pyro
 import pyro.distributions as dist
 import torch
 
-from .typing import Coefs, Features, Schema
+from .typing import Blocks, Coefs, Schema
 
 
 def linear_response(schema: Schema, coefs: Coefs, sequence: torch.Tensor):
@@ -28,7 +28,7 @@ def linear_response(schema: Schema, coefs: Coefs, sequence: torch.Tensor):
 
 def model(
     schema: Schema,
-    features: Features,
+    features: Blocks,
     experiment: Dict[str, torch.Tensor],  # sequences, batch_id, response
     *,
     quantization_bins=100,

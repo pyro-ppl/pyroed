@@ -5,15 +5,15 @@ import pyro.distributions as dist
 import torch
 
 from .models import linear_response
-from .typing import Constraints, Features, GibbsBlocks, Schema
+from .typing import Blocks, Constraints, Schema
 
 
 @torch.no_grad()
 def optimize_simulated_annealing(
     schema: Schema,
     constraints: Constraints,
-    features: Features,
-    gibbs_blocks: GibbsBlocks,
+    features: Blocks,
+    gibbs_blocks: Blocks,
     coefs: dict,
     *,
     temperature_schedule: torch.Tensor,

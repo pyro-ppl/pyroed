@@ -13,7 +13,7 @@ from pyroed.constraints import AllDifferent, Iff, IfThen, TakesValue
 from pyroed.oed import thompson_sample
 from pyroed.testing import generate_fake_data
 
-# Specify the design space via SCHEMA, CONSTRAINTS, FEATURES, and GIBBS_BLOCKS.
+# Specify the design space via SCHEMA, CONSTRAINTS, FEATURE_BLOCKS, and GIBBS_BLOCKS.
 SCHEMA = OrderedDict()
 SCHEMA["Protein 1"] = ["Prot1", "Prot2", None]
 SCHEMA["Protein 2"] = ["Prot3", "HLA1", "HLA2", "HLA3", "HLA4", None]
@@ -34,8 +34,8 @@ CONSTRAINTS = [
     Iff(TakesValue("Protein 2", "Prot3"), TakesValue("2A-2", None)),
 ]
 
-FEATURES = [[name] for name in SCHEMA]
-FEATURES.append(["Protein 1", "Protein 2"])  # TODO(liz) add a real interaction
+FEATURE_BLOCKS = [[name] for name in SCHEMA]
+FEATURE_BLOCKS.append(["Protein 1", "Protein 2"])  # TODO(liz) add a real interaction
 
 GIBBS_BLOCKS = [
     ["Protein 1", "2A-1"],
@@ -86,13 +86,13 @@ def main(args):
     else:
         print("Generating fake data")
         truth, experiment = generate_fake_data(
-            SCHEMA, FEATURES, args.sequences_per_batch, args.simulate_batches
+            SCHEMA, FEATURE_BLOCKS, args.sequences_per_batch, args.simulate_batches
         )
 
     design = thompson_sample(
         SCHEMA,
         CONSTRAINTS,
-        FEATURES,
+        FEATURE_BLOCKS,
         GIBBS_BLOCKS,
         experiment,
         inference="mcmc" if args.mcmc else "svi",
