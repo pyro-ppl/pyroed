@@ -21,7 +21,7 @@ def encode_design(
     if __debug__:
         for seq in design:
             assert len(seq) == len(schema)
-            for value, (name, values) in zip(seq, schema.values()):
+            for value, (name, values) in zip(seq, schema.items()):
                 if value not in values:
                     raise ValueError(
                         f"Value {repr(value)} not found in schema[{repr(name)}]"
@@ -145,7 +145,7 @@ def validate(
         features = experiment.get("features")
         assert isinstance(sequences, torch.Tensor)
         assert sequences.dtype == torch.long
-        assert sequences.dim == 2
+        assert sequences.dim() == 2
         assert sequences.shape[-1] == len(schema)
         assert len(sequences) == len(batch_id)
         assert len(sequences) == len(response)
