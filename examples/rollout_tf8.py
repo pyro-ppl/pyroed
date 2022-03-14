@@ -1,13 +1,15 @@
-from collections import OrderedDict
-import time
-import pyro
-import torch
+# type: ignore
+
 import argparse
 import pickle
+import time
+from collections import OrderedDict
+
+import pyro
+import torch
 
 from pyroed.datasets.data import load_tf_data
 from pyroed.oed import thompson_sample
-
 
 SCHEMA = OrderedDict()
 for n in range(8):
@@ -25,7 +27,7 @@ GIBBS_BLOCKS = triples
 
 
 def update_experiment(experiment: dict, design: set, data: dict) -> dict:
-    ids = list(map(data['seq_to_id'].__getitem__, sorted(design)))
+    ids = list(map(data["seq_to_id"].__getitem__, sorted(design)))
     new_data = {
         "sequences": data["sequences"][ids],
         "batch_id": torch.zeros(len(ids)).long(),
@@ -35,7 +37,9 @@ def update_experiment(experiment: dict, design: set, data: dict) -> dict:
     return experiment
 
 
-def make_design(experiment: dict, design_size: int, thompson_temperature: float, features: list) -> set:
+def make_design(
+    experiment: dict, design_size: int, thompson_temperature: float, features: list
+) -> set:
     return thompson_sample(
         SCHEMA,
         CONSTRAINTS,
@@ -55,29 +59,51 @@ def main(args):
     pyro.set_rng_seed(args.seed)
 
     data = load_tf_data()
-    ids = torch.randperm(len(data["response"]))[:args.num_initial_sequences]
+    ids = torch.randperm(len(data["response"]))[: args.num_initial_sequences]
     experiment = {k: v[ids] for k, v in data.items()}
-    data['seq_to_id'] = {tuple(row): i for i, row in enumerate(data["sequences"].tolist())}
+    data["seq_to_id"] = {
+        tuple(row): i for i, row in enumerate(data["sequences"].tolist())
+    }
 
-    print(f"[Initial batch] Best response thus far: {experiment['response'].max():0.6g}")
+    print(
+        f"[Initial batch] Best response thus far: {experiment['response'].max():0.6g}"
+    )
     experiments = [experiment]
     t0 = time.time()
 
     for batch in range(args.num_batches):
-        design = make_design(experiments[-1], args.num_sequences_per_batch, args.thompson_temperature,
-                             SINGLETON_FEATURES if args.features == "singleton" else PAIRWISE_FEATURES)
+        design = make_design(
+            experiments[-1],
+            args.num_sequences_per_batch,
+            args.thompson_temperature,
+            SINGLETON_FEATURES if args.features == "singleton" else PAIRWISE_FEATURES,
+        )
         experiments.append(update_experiment(experiments[-1], design, data))
-        print("[Batch #{}] Best response thus far: {:0.6g}".format(batch + 1, experiments[-1]['response'].max().item()))
+        print(
+            "[Batch #{}] Best response thus far: {:0.6g}".format(
+                batch + 1, experiments[-1]["response"].max().item()
+            )
+        )
 
-    print("Best response from all batches: {:0.6g}".format(experiments[-1]['response'].max().item()))
+    print(
+        "Best response from all batches: {:0.6g}".format(
+            experiments[-1]["response"].max().item()
+        )
+    )
     print("Elapsed time: {:.4f}".format(time.time() - t0))
 
     response_curve = [e["response"].max().item() for e in experiments]
 
     f = "results/results.{}.s{}.temp{}.nb{}.nspb{}.nis{}.pkl"
-    f = f.format(args.features, args.seed, int(args.thompson_temperature), args.num_batches,
-                 args.num_sequences_per_batch, args.num_initial_sequences)
-    pickle.dump(response_curve, open(f, 'wb'))
+    f = f.format(
+        args.features,
+        args.seed,
+        int(args.thompson_temperature),
+        args.num_batches,
+        args.num_sequences_per_batch,
+        args.num_initial_sequences,
+    )
+    pickle.dump(response_curve, open(f, "wb"))
 
 
 if __name__ == "__main__":
@@ -88,7 +114,9 @@ if __name__ == "__main__":
     parser.add_argument("--num-batches", default=7)
     parser.add_argument("--seed", default=0, type=int)
     parser.add_argument("--thompson-temperature", default=4.0, type=float)
-    parser.add_argument("--features", type=str, default="singleton", choices=["singleton", "pairwise"])
+    parser.add_argument(
+        "--features", type=str, default="singleton", choices=["singleton", "pairwise"]
+    )
 
     args = parser.parse_args()
 

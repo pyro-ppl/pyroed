@@ -12,7 +12,7 @@ format: FORCE
 	isort .
 
 test: lint FORCE
-	python example.py
+	python examples/immune_sequence.py
 	# pytest -v -n auto test
 
 FORCE:
