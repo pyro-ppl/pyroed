@@ -3,9 +3,8 @@ from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 import torch
 
-from .constraints import Constraint
 from .oed import thompson_sample
-from .typing import Blocks, Constraints, Schema
+from .typing import Blocks, Constraints, Schema, validate
 
 
 def encode_design(
@@ -76,7 +75,13 @@ def get_next_design(
     assert design_size > 0
     assert isinstance(config, dict)
     if __debug__:
-        validate(schema, constraints, feature_blocks, gibbs_blocks, experiment)
+        validate(
+            schema,
+            constraints=constraints,
+            feature_blocks=feature_blocks,
+            gibbs_blocks=gibbs_blocks,
+            experiment=experiment,
+        )
 
     # Perform OED via Thompson sampling.
     design = thompson_sample(
@@ -91,80 +96,8 @@ def get_next_design(
     return design
 
 
-def validate(
-    schema: Schema,
-    constraints: Constraints,
-    feature_blocks: Blocks,
-    gibbs_blocks: Blocks,
-    experiment: Optional[Dict[str, torch.Tensor]] = None,
-) -> None:
-    # Validate schema.
-    assert isinstance(schema, OrderedDict)
-    for name, values in schema.items():
-        assert isinstance(name, str)
-        assert isinstance(values, list)
-        assert values
-        for value in values:
-            assert value is None or isinstance(value, str)
-
-    # Validate constraints.
-    assert isinstance(constraints, list)
-    for constraint in constraints:
-        assert isinstance(constraint, Constraint)
-
-    # Validate feature_blocks.
-    assert isinstance(feature_blocks, list)
-    for block in feature_blocks:
-        assert isinstance(block, list)
-        for col in block:
-            assert col in schema
-    assert len({tuple(f) for f in feature_blocks}) == len(
-        feature_blocks
-    ), "duplicate feature_blocks"
-
-    # Validate gibbs_blocks.
-    assert isinstance(gibbs_blocks, list)
-    for block in gibbs_blocks:
-        assert isinstance(block, list)
-        for col in block:
-            assert col in schema
-    assert len({tuple(f) for f in gibbs_blocks}) == len(
-        gibbs_blocks
-    ), "duplicate gibbs_blocks"
-
-    # Validate experiment.
-    allowed_keys = {"sequences", "batch_id", "response", "features"}
-    required_keys = {"sequences", "batch_id", "response"}
-    if experiment is not None:
-        assert isinstance(experiment, dict)
-        assert allowed_keys.issuperset(experiment)
-        assert required_keys.issubset(experiment)
-        sequences = experiment["sequences"]
-        batch_id = experiment["batch_id"]
-        response = experiment["response"]
-        features = experiment.get("features")
-        assert isinstance(sequences, torch.Tensor)
-        assert sequences.dtype == torch.long
-        assert sequences.dim() == 2
-        assert sequences.shape[-1] == len(schema)
-        assert len(sequences) == len(batch_id)
-        assert len(sequences) == len(response)
-        assert isinstance(batch_id, torch.Tensor)
-        assert batch_id.dtype == torch.long
-        assert batch_id.dim() == 1
-        assert isinstance(response, torch.Tensor)
-        assert response.dtype in (torch.float, torch.double)
-        assert response.dim() == 1
-        if features is not None:
-            assert isinstance(features, torch.Tensor)
-            assert features.dtype == response.dtype
-            assert features.dim() == 2
-            assert len(sequences) == len(features)
-
-
 __all__ = [
     "decode_design",
     "encode_design",
     "get_next_design",
-    "validate",
 ]

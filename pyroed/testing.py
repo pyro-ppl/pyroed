@@ -4,7 +4,7 @@ import pyro.poutine as poutine
 import torch
 
 from .models import model
-from .typing import Blocks, Schema
+from .typing import Blocks, Schema, validate
 
 
 @torch.no_grad()
@@ -36,4 +36,7 @@ def generate_fake_data(
         if name != "batch_response"  # shape varies in time
     }
     experiment["response"] = trace.nodes["response"]["value"].detach()
+    if __debug__:
+        validate(schema, feature_blocks=feature_blocks, experiment=experiment)
+
     return truth, experiment

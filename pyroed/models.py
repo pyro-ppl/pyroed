@@ -5,7 +5,7 @@ import pyro
 import pyro.distributions as dist
 import torch
 
-from .typing import Blocks, Coefs, Schema
+from .typing import Blocks, Coefs, Schema, validate
 
 
 def linear_response(schema: Schema, coefs: Coefs, sequence: torch.Tensor):
@@ -29,24 +29,14 @@ def linear_response(schema: Schema, coefs: Coefs, sequence: torch.Tensor):
 def model(
     schema: Schema,
     feature_blocks: Blocks,
-    experiment: Dict[str, torch.Tensor],  # sequences, batch_id, response
+    experiment: Dict[str, torch.Tensor],  # sequences, batch_id, optional(response)
     *,
     quantization_bins=100,
 ):
-    P = len(schema)
     N = experiment["sequences"].size(0)
     B = 1 + int(experiment["batch_id"].max())
-    if not torch._C._get_tracing_state():
-        assert experiment["sequences"].dtype == torch.int64
-        assert experiment["sequences"].dim() == 2
-        assert experiment["sequences"].shape[-1] == P
-        if experiment["response"] is not None:
-            assert torch.is_floating_point(experiment["response"])
-            assert experiment["response"].shape == (N,)
-            assert 0 <= experiment["response"].min()
-            assert experiment["response"].max() <= 1
-        assert experiment["batch_id"].dtype == torch.int64
-        assert experiment["batch_id"].shape == (N,)
+    if __debug__ and not torch._C._get_tracing_state():
+        validate(schema, experiment=experiment)
     name_to_int = {name: i for i, name in enumerate(schema)}
 
     # Hierarchically sample linear coefficients.
@@ -97,14 +87,15 @@ def model(
 
         # Quantize the observation to avoid numerical artifacts near 0 and 1.
         quantized_obs = None
-        if experiment["response"] is not None:  # during inference
-            quantized_obs = (experiment["response"] * quantization_bins).round()
+        response = experiment.get("response")
+        if response is not None:  # during inference
+            quantized_obs = (response * quantization_bins).round()
         quantized_obs = pyro.sample(
             "quantized_response",
             dist.Binomial(quantization_bins, logits=logits),
             obs=quantized_obs,
         )
-        if experiment["response"] is None:  # during simulation
+        if response is None:  # during simulation
             pyro.deterministic("response", quantized_obs / quantization_bins)
 
     return coefs
