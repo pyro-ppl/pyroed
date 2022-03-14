@@ -10,7 +10,7 @@ from .typing import Blocks, Schema
 @torch.no_grad()
 def generate_fake_data(
     schema: Schema,
-    features: Blocks,
+    feature_blocks: Blocks,
     sequences_per_batch: int,
     num_batches: int = 1,
 ):
@@ -27,7 +27,7 @@ def generate_fake_data(
         [torch.randint(0, len(choices), (N,)) for choices in schema.values()], dim=-1
     )
     experiment["response"] = None
-    trace = poutine.trace(model).get_trace(schema, features, experiment)
+    trace = poutine.trace(model).get_trace(schema, feature_blocks, experiment)
     truth = {
         name: site["value"].detach()
         for name, site in trace.nodes.items()

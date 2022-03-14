@@ -12,7 +12,6 @@ from .typing import Blocks, Constraints, Schema
 def optimize_simulated_annealing(
     schema: Schema,
     constraints: Constraints,
-    features: Blocks,
     gibbs_blocks: Blocks,
     coefs: dict,
     *,

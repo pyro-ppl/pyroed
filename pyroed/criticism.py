@@ -16,7 +16,7 @@ matplotlib.use("Agg")
 def criticize(
     schema: Schema,
     constraints: Constraints,
-    features: Blocks,
+    feature_blocks: Blocks,
     gibbs_blocks: Blocks,
     experiment,
     test_data,
@@ -31,7 +31,7 @@ def criticize(
     log_every=100,
 ):
     def tf8_model():
-        return model(schema, features, experiment)
+        return model(schema, feature_blocks, experiment)
 
     # Fit a posterior distribution over parameters given experiment data.
     with warnings.catch_warnings():
@@ -71,7 +71,7 @@ def criticize(
 
         for _ in range(num_posterior_samples):
             with poutine.condition(data=sampler()):
-                coefs = model(schema, features, experiment)
+                coefs = model(schema, feature_blocks, experiment)
                 test_prediction = linear_response(
                     schema, coefs, test_sequences
                 ).sigmoid()

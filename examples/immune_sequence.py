@@ -9,8 +9,8 @@ import pyro
 import torch
 import torch.multiprocessing as mp
 
+from pyroed.api import get_next_design
 from pyroed.constraints import AllDifferent, Iff, IfThen, TakesValue
-from pyroed.oed import thompson_sample
 from pyroed.testing import generate_fake_data
 
 # Specify the design space via SCHEMA, CONSTRAINTS, FEATURE_BLOCKS, and GIBBS_BLOCKS.
@@ -89,22 +89,26 @@ def main(args):
             SCHEMA, FEATURE_BLOCKS, args.sequences_per_batch, args.simulate_batches
         )
 
-    design = thompson_sample(
+    config = {
+        "inference": "mcmc" if args.mcmc else "svi",
+        "mcmc_num_samples": args.mcmc_num_samples,
+        "mcmc_warmup_steps": args.mcmc_warmup_steps,
+        "mcmc_num_chains": args.mcmc_num_chains,
+        "svi_num_steps": args.svi_num_steps,
+        "sa_num_steps": args.sa_num_steps,
+        "max_tries": args.max_tries,
+        "thompson_temperature": args.thompson_temperature,
+        "log_every": args.log_every,
+        "jit_compile": args.jit,
+    }
+    design = get_next_design(
         SCHEMA,
         CONSTRAINTS,
         FEATURE_BLOCKS,
         GIBBS_BLOCKS,
         experiment,
-        inference="mcmc" if args.mcmc else "svi",
-        mcmc_num_samples=args.mcmc_num_samples,
-        mcmc_warmup_steps=args.mcmc_warmup_steps,
-        mcmc_num_chains=args.mcmc_num_chains,
-        svi_num_steps=args.svi_num_steps,
-        sa_num_steps=args.sa_num_steps,
-        max_tries=args.max_tries,
-        thompson_temperature=args.thompson_temperature,
-        log_every=args.log_every,
-        jit_compile=args.jit,
+        design_size=args.sequences_per_batch,
+        config=config,
     )
     print("Design:")
     for row in sorted(design):

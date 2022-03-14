@@ -11,46 +11,75 @@ from .typing import Blocks, Constraints, Schema
 def encode_design(
     schema: Schema, design: Iterable[List[Optional[str]]]
 ) -> torch.Tensor:
+    """
+    Converts a human readable list of design into a tensor.
+    """
+    # Validate inputs.
+    design = list(design)
+    assert len(design) > 0
+    assert isinstance(schema, OrderedDict)
+    if __debug__:
+        for seq in design:
+            assert len(seq) == len(schema)
+            for value, (name, values) in zip(seq, schema.values()):
+                if value not in values:
+                    raise ValueError(
+                        f"Value {repr(value)} not found in schema[{repr(name)}]"
+                    )
 
-    rows = []
-    for seq in design:
-        if len(seq) != len(schema):
-            raise ValueError
-        row = []
-        for value, (name, values) in zip(seq, schema.items()):
-            try:
-                row.append(values.index(value))
-            except ValueError:
-                raise ValueError(
-                    f"Value {repr(value)} not found in schema[{repr(name)}]"
-                )
-        rows.append(row)
-    return torch.tensor(rows)
+    # Convert python list -> tensor.
+    rows = [
+        [values.index(value) for value, values in zip(seq, schema.values())]
+        for seq in design
+    ]
+    return torch.tensor(rows, dtype=torch.long)
 
 
 def decode_design(schema: Schema, sequences: torch.Tensor) -> List[List[Optional[str]]]:
     """
     Converts an tensor representation of a design into a readable list of designs.
     """
-    raise NotImplementedError("TODO")
+    # Validate.
+    assert isinstance(schema, OrderedDict)
+    assert isinstance(sequences, torch.Tensor)
+    assert sequences.dtype == torch.long
+    assert sequences.dim() == 2
+
+    # Convert tensor -> python list.
+    rows = [
+        [values[i] for i, values in zip(seq, schema.values())]
+        for seq in sequences.tolist()
+    ]
+    return rows
 
 
 def get_next_design(
-    *,
     schema: Schema,
     constraints: Constraints,
     feature_blocks: Blocks,
     gibbs_blocks: Blocks,
     experiment: Dict[str, torch.Tensor],
+    *,
     design_size: int = 10,
     config: Optional[dict] = None,
 ) -> Set[Tuple[int, ...]]:
+    """
+    Generate a new design given cumulative experimental data.
+
+    :param OrderedDict schema: A schema dict.
+    """
+    if config is None:
+        config = {}
+
+    # Validate inputs.
+    assert isinstance(design_size, int)
+    assert design_size > 0
+    assert isinstance(config, dict)
     if __debug__:
         validate(schema, constraints, feature_blocks, gibbs_blocks, experiment)
 
-    if config is None:
-        config = {}
-    return thompson_sample(
+    # Perform OED via Thompson sampling.
+    design = thompson_sample(
         schema,
         constraints,
         feature_blocks,
@@ -59,6 +88,7 @@ def get_next_design(
         design_size=design_size,
         **config,
     )
+    return design
 
 
 def validate(
@@ -103,12 +133,16 @@ def validate(
     ), "duplicate gibbs_blocks"
 
     # Validate experiment.
+    allowed_keys = {"sequences", "batch_id", "response", "features"}
+    required_keys = {"sequences", "batch_id", "response"}
     if experiment is not None:
         assert isinstance(experiment, dict)
-        assert set(experiment.keys()) == {"sequences", "batch_id", "response"}
+        assert allowed_keys.issuperset(experiment)
+        assert required_keys.issubset(experiment)
         sequences = experiment["sequences"]
         batch_id = experiment["batch_id"]
         response = experiment["response"]
+        features = experiment.get("features")
         assert isinstance(sequences, torch.Tensor)
         assert sequences.dtype == torch.long
         assert sequences.dim == 2
@@ -121,6 +155,11 @@ def validate(
         assert isinstance(response, torch.Tensor)
         assert response.dtype in (torch.float, torch.double)
         assert response.dim() == 1
+        if features is not None:
+            assert isinstance(features, torch.Tensor)
+            assert features.dtype == response.dtype
+            assert features.dim() == 2
+            assert len(sequences) == len(features)
 
 
 __all__ = [

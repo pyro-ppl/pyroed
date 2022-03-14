@@ -28,7 +28,7 @@ def linear_response(schema: Schema, coefs: Coefs, sequence: torch.Tensor):
 
 def model(
     schema: Schema,
-    features: Blocks,
+    feature_blocks: Blocks,
     experiment: Dict[str, torch.Tensor],  # sequences, batch_id, response
     *,
     quantization_bins=100,
@@ -53,9 +53,9 @@ def model(
     coef_scale_loc = pyro.sample("coef_scale_loc", dist.Normal(-2, 1))
     coef_scale_scale = pyro.sample("coef_scale_scale", dist.LogNormal(0, 1))
     coefs: Coefs = {}
-    for names in features:
-        shape = tuple(len(schema[name]) for name in names)
-        ps = tuple(name_to_int[name] for name in names)
+    for block in feature_blocks:
+        shape = tuple(len(schema[name]) for name in block)
+        ps = tuple(name_to_int[name] for name in block)
         suffix = "_".join(map(str, ps))
         # Within-component variance of coefficients.
         coef_scale = pyro.sample(
@@ -64,7 +64,7 @@ def model(
         )
         # Linear coefficients. Note this overparametrizes; there are only
         # len(choices) - 1 degrees of freedom and 1 nuisance dim.
-        coefs[tuple(names)] = pyro.sample(
+        coefs[tuple(block)] = pyro.sample(
             f"coef_{suffix}",
             dist.Normal(torch.zeros(shape), coef_scale).to_event(len(shape)),
         )

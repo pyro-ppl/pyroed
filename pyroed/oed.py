@@ -13,7 +13,7 @@ from .typing import Blocks, Constraints, Schema
 def thompson_sample(
     schema: Schema,
     constraints: Constraints,
-    features: Blocks,
+    feature_blocks: Blocks,
     gibbs_blocks: Blocks,
     experiment: Dict[str, torch.Tensor],
     *,
@@ -36,7 +36,7 @@ def thompson_sample(
 
     @poutine.scale(scale=1 / thompson_temperature)
     def hot_model():
-        return model(schema, features, experiment)
+        return model(schema, feature_blocks, experiment)
 
     # Fit a posterior distribution over parameters given experiment data.
     with warnings.catch_warnings():
@@ -78,12 +78,11 @@ def thompson_sample(
             if log_every:
                 print(".", end="", flush=True)
             with poutine.condition(data=sampler()):
-                coefs = model(schema, features, experiment)
+                coefs = model(schema, feature_blocks, experiment)
 
             seq = optimize_simulated_annealing(
                 schema,
                 constraints,
-                features,
                 gibbs_blocks,
                 coefs,
                 temperature_schedule=temperature_schedule,
