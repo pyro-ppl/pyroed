@@ -26,7 +26,6 @@ def generate_fake_data(
     experiment["sequences"] = torch.stack(
         [torch.randint(0, len(choices), (N,)) for choices in schema.values()], dim=-1
     )
-    experiment["response"] = None
     trace = poutine.trace(model).get_trace(schema, feature_blocks, experiment)
     truth = {
         name: site["value"].detach()

@@ -78,6 +78,7 @@ def criticize(
                 test_predictions.append(test_prediction)
 
         test_predictions = torch.stack(test_predictions).cpu().data.numpy()
+        assert isinstance(test_predictions, np.ndarray)
         mean_predictions = test_predictions.mean(0)
         std_predictions = test_predictions.std(0)
 

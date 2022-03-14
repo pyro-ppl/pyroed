@@ -89,9 +89,9 @@ def thompson_sample(
                 log_every=log_every,
             )
 
-            seq = tuple(seq.tolist())
-            if seq not in old_design:
-                design.add(seq)
+            new_seq = tuple(seq.tolist())
+            if new_seq not in old_design:
+                design.add(new_seq)
             if len(design) >= design_size:
                 break
 

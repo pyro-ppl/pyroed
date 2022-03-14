@@ -18,7 +18,7 @@ def fit_svi(
     plot=False,
 ) -> Callable[[], Dict[str, torch.Tensor]]:
     pyro.clear_param_store()
-    guide = AutoLowRankMultivariateNormal(model)
+    guide: Callable[[], Dict[str, torch.Tensor]] = AutoLowRankMultivariateNormal(model)
     optim = ClippedAdam({"lr": lr, "lrd": 0.1 ** (1 / num_steps)})
     elbo = (JitTrace_ELBO if jit_compile else Trace_ELBO)()
     svi = SVI(model, guide, optim, elbo)
