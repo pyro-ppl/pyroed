@@ -1,5 +1,5 @@
 import warnings
-from typing import Set, Tuple
+from typing import Dict, Set, Tuple
 
 import pyro.poutine as poutine
 import torch
@@ -15,7 +15,7 @@ def thompson_sample(
     constraints: Constraints,
     features: Features,
     gibbs_blocks: GibbsBlocks,
-    experiment,
+    experiment: Dict[str, torch.Tensor],
     *,
     design_size=10,
     inference="svi",
@@ -25,7 +25,7 @@ def thompson_sample(
     svi_num_steps=201,
     sa_num_steps=1000,
     max_tries=1000,
-    thompson_temperature=4.0,
+    thompson_temperature=1.0,
     jit_compile=False,
     log_every=100,
 ) -> Set[Tuple[int, ...]]:

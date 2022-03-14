@@ -24,9 +24,10 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     packages=find_packages(include=["pyroed"]),
-    url="http://pyro.ai",
+    package_data={"pyroed": ["py.typed"]},
+    url="https://github.com/broadinstitute/pyroed",
     author="Pyro team at the Broad Institute of MIT and Harvard",
-    author_email="fobermey@broadinstitute.org",
+    author_email="fritz.obermeyer@gmail.com",
     install_requires=[
         "pyro-ppl>=1.7",
         "pandas",
@@ -40,7 +41,7 @@ setup(
             "mypy>=0.812",
         ],
     },
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     keywords="optimal experimental design pyro",
     license="Apache 2.0",
     classifiers=[
@@ -49,7 +50,8 @@ setup(
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: POSIX :: Linux",
         "Operating System :: MacOS :: MacOS X",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
     ],
 )

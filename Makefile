@@ -1,18 +1,19 @@
 install: FORCE
-	pip install -e .[test]
+	python -m pip install -e .[test]
 
 lint: FORCE
-	flake8
-	black --check .
-	isort --check .
-	mypy .
+	python -m flake8
+	python -m black --check *.py pyroed test examples/*.py
+	python -m isort --check .
+	python -m mypy --install-types --non-interactive pyroed
 
 format: FORCE
-	black .
-	isort .
+	python -m black *.py pyroed test examples/*.py
+	python -m isort .
 
 test: lint FORCE
+	pytest -vx test
 	python examples/immune_sequence.py
-	# pytest -v -n auto test
+	@echo PASSED
 
 FORCE:

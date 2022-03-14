@@ -132,7 +132,7 @@ if __name__ == "__main__":
     parser.add_argument("--mcmc-num-chains", default=min(4, mp.cpu_count()), type=int)
     parser.add_argument("--svi-num-steps", default=201, type=int)
     parser.add_argument("--sa-num-steps", default=201, type=int)
-    parser.add_argument("--jit", default=True, action="store_true")
+    parser.add_argument("--jit", default=False, action="store_true")
     parser.add_argument("--nojit", dest="jit", action="store_false")
     parser.add_argument("--seed", default=20210929)
     parser.add_argument("--log-every", default=100, type=int)
