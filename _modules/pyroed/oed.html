@@ -102,6 +102,16 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    This trains a guide (i.e. do variational inference), draws thompson</span>
 <span class="sd">    samples, and finds candidate designs via simulated annealing.</span>
+
+<span class="sd">    :param OrderedDict schema: A schema dict.</span>
+<span class="sd">    :param list constraints: A list of constraints.</span>
+<span class="sd">    :param list feature_blocks: A list of choice blocks for linear regression.</span>
+<span class="sd">    :param list gibbs_blocks: A list of choice blocks for Gibbs sampling.</span>
+<span class="sd">    :param dict experiment: A dict containing all old experiment data.</span>
+<span class="sd">    :param int design_size: Number of designs to try to return (sometimes</span>
+<span class="sd">        fewer designs are found).</span>
+<span class="sd">    :returns: A design as a set of tuples of choices.</span>
+<span class="sd">    :rtype: set</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nd">@poutine</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="n">thompson_temperature</span><span class="p">)</span>

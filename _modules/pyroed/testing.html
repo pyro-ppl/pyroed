@@ -69,6 +69,7 @@
              
   <h1>Source code for pyroed.testing</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">pyro.poutine</span> <span class="k">as</span> <span class="nn">poutine</span>
 <span class="kn">import</span> <span class="nn">torch</span>
@@ -83,10 +84,24 @@
     <span class="n">feature_blocks</span><span class="p">:</span> <span class="n">Blocks</span><span class="p">,</span>
     <span class="n">sequences_per_batch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">num_batches</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-<span class="p">):</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generates a fake dataset for testing.</span>
+
+<span class="sd">    :param OrderedDict schema: A schema dict.</span>
+<span class="sd">    :param list constraints: A list of constraints.</span>
+<span class="sd">    :param list feature_blocks: A list of choice blocks for linear regression.</span>
+<span class="sd">    :param int sequences_per_batch: The number of sequences per experiment</span>
+<span class="sd">        batch.</span>
+<span class="sd">    :param int num_batches: The number of experiment batches.</span>
+<span class="sd">    :returns: A pair ``(truth, experiment)``, where ``truth`` is a dict of</span>
+<span class="sd">        true values of latent variables (regression coefficients, etc.), and</span>
+<span class="sd">        ``experiment`` is a standard experiment dict.</span>
+<span class="sd">    :rtype: tuple</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">B</span> <span class="o">=</span> <span class="n">num_batches</span>
     <span class="n">N</span> <span class="o">=</span> <span class="n">sequences_per_batch</span> <span class="o">*</span> <span class="n">B</span>
-    <span class="n">experiment</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">experiment</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
     <span class="c1"># Work around irrelevant PyTorch interface change warnings.</span>
     <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
@@ -97,7 +112,7 @@
         <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">choices</span><span class="p">),</span> <span class="p">(</span><span class="n">N</span><span class="p">,))</span> <span class="k">for</span> <span class="n">choices</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">values</span><span class="p">()],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span>
     <span class="p">)</span>
     <span class="n">trace</span> <span class="o">=</span> <span class="n">poutine</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="n">get_trace</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">feature_blocks</span><span class="p">,</span> <span class="n">experiment</span><span class="p">)</span>
-    <span class="n">truth</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">truth</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
         <span class="n">name</span><span class="p">:</span> <span class="n">site</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">site</span> <span class="ow">in</span> <span class="n">trace</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">site</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;sample&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">site</span><span class="p">[</span><span class="s2">&quot;is_observed&quot;</span><span class="p">]</span>

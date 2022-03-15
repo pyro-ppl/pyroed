@@ -89,6 +89,10 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Fits a model via stochastic variational inference.</span>
+
+<span class="sd">    :param callable model: A Bayesian regression model from :mod:`pyroed.models`.</span>
+<span class="sd">    :returns: A variational distribution that can generate samples.</span>
+<span class="sd">    :rtype: callable</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">pyro</span><span class="o">.</span><span class="n">clear_param_store</span><span class="p">()</span>
     <span class="n">guide</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="n">AutoLowRankMultivariateNormal</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
@@ -122,6 +126,10 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Fits a model via Hamiltonian Monte Carlo.</span>
+
+<span class="sd">    :param callable model: A Bayesian regression model from :mod:`pyroed.models`.</span>
+<span class="sd">    :returns: A sampler that draws from the empirical distribution.</span>
+<span class="sd">    :rtype: Sampler</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">kernel</span> <span class="o">=</span> <span class="n">NUTS</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">jit_compile</span><span class="o">=</span><span class="n">jit_compile</span><span class="p">)</span>
     <span class="n">mcmc</span> <span class="o">=</span> <span class="n">MCMC</span><span class="p">(</span>
@@ -138,6 +146,8 @@
 <div class="viewcode-block" id="Sampler"><a class="viewcode-back" href="../../internals.html#pyroed.inference.Sampler">[docs]</a><span class="k">class</span> <span class="nc">Sampler</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Helper to sample from an empirical distribution.</span>
+
+<span class="sd">    :param dict samples: A dictionary of batches of samples.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]):</span>

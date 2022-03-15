@@ -84,6 +84,14 @@
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyroed.constraints.</span></span><span class="sig-name descname"><span class="pre">TakesValue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.10)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyroed/constraints.html#TakesValue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyroed.constraints.TakesValue" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyroed.constraints.Constraint</span></code></a></p>
 <p>Constrains a site to take a fixed value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a>) – Name of a sequence variable in the schema.</p></li>
+<li><p><strong>value</strong> – The value that the variable can take.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py class">
@@ -91,6 +99,14 @@
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyroed.constraints.</span></span><span class="sig-name descname"><span class="pre">TakesValues</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.10)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyroed/constraints.html#TakesValues"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyroed.constraints.TakesValues" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyroed.constraints.Constraint</span></code></a></p>
 <p>Constrains a site to take one of a set of values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a>) – Name of a sequence variable in the schema.</p></li>
+<li><p><strong>*values</strong> – Values that the variable can take.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py class">
@@ -98,6 +114,11 @@
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyroed.constraints.</span></span><span class="sig-name descname"><span class="pre">AllDifferent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyroed/constraints.html#AllDifferent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyroed.constraints.AllDifferent" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyroed.constraints.Constraint</span></code></a></p>
 <p>Constrains a set of sites to all have distinct values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>*names</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a>) – Names of sequence variables that should be distinct.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py class">
@@ -105,6 +126,11 @@
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyroed.constraints.</span></span><span class="sig-name descname"><span class="pre">Not</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><span class="pre">pyroed.constraints.Constraint</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyroed/constraints.html#Not"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyroed.constraints.Not" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyroed.constraints.Constraint</span></code></a></p>
 <p>Negates a constraints.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>arg</strong> (<a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><em>Constraint</em></a>) – A constraint.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py class">
@@ -112,6 +138,14 @@
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyroed.constraints.</span></span><span class="sig-name descname"><span class="pre">And</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lhs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><span class="pre">pyroed.constraints.Constraint</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rhs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><span class="pre">pyroed.constraints.Constraint</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyroed/constraints.html#And"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyroed.constraints.And" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyroed.constraints.Constraint</span></code></a></p>
 <p>Conjoins two constraints.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lhs</strong> (<a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><em>Constraint</em></a>) – A constraint.</p></li>
+<li><p><strong>rhs</strong> (<a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><em>Constraint</em></a>) – A constraint.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py class">
@@ -119,6 +153,14 @@
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyroed.constraints.</span></span><span class="sig-name descname"><span class="pre">Or</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lhs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><span class="pre">pyroed.constraints.Constraint</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rhs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><span class="pre">pyroed.constraints.Constraint</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyroed/constraints.html#Or"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyroed.constraints.Or" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyroed.constraints.Constraint</span></code></a></p>
 <p>Disjoins two constraints.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lhs</strong> (<a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><em>Constraint</em></a>) – A constraint.</p></li>
+<li><p><strong>rhs</strong> (<a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><em>Constraint</em></a>) – A constraint.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py class">
@@ -126,6 +168,14 @@
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyroed.constraints.</span></span><span class="sig-name descname"><span class="pre">Xor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lhs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><span class="pre">pyroed.constraints.Constraint</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rhs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><span class="pre">pyroed.constraints.Constraint</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyroed/constraints.html#Xor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyroed.constraints.Xor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyroed.constraints.Constraint</span></code></a></p>
 <p>Exclusive or among constraints. Equivalent to <code class="docutils literal notranslate"><span class="pre">Not(Iff(lhs,</span> <span class="pre">rhs))</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lhs</strong> (<a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><em>Constraint</em></a>) – A constraint.</p></li>
+<li><p><strong>rhs</strong> (<a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><em>Constraint</em></a>) – A constraint.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py class">
@@ -133,6 +183,14 @@
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyroed.constraints.</span></span><span class="sig-name descname"><span class="pre">IfThen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lhs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><span class="pre">pyroed.constraints.Constraint</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rhs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><span class="pre">pyroed.constraints.Constraint</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyroed/constraints.html#IfThen"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyroed.constraints.IfThen" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyroed.constraints.Constraint</span></code></a></p>
 <p>Conditional between constraints.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lhs</strong> (<a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><em>Constraint</em></a>) – A constraint.</p></li>
+<li><p><strong>rhs</strong> (<a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><em>Constraint</em></a>) – A constraint.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py class">
@@ -140,6 +198,14 @@
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyroed.constraints.</span></span><span class="sig-name descname"><span class="pre">Iff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lhs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><span class="pre">pyroed.constraints.Constraint</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rhs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><span class="pre">pyroed.constraints.Constraint</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyroed/constraints.html#Iff"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyroed.constraints.Iff" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyroed.constraints.Constraint</span></code></a></p>
 <p>Equality among constraints.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lhs</strong> (<a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><em>Constraint</em></a>) – A constraint.</p></li>
+<li><p><strong>rhs</strong> (<a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><em>Constraint</em></a>) – A constraint.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 </section>

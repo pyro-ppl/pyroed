@@ -89,6 +89,9 @@
 <div class="viewcode-block" id="TakesValue"><a class="viewcode-back" href="../../constraints.html#pyroed.constraints.TakesValue">[docs]</a><span class="k">class</span> <span class="nc">TakesValue</span><span class="p">(</span><span class="n">Constraint</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Constrains a site to take a fixed value.</span>
+
+<span class="sd">    :param str name: Name of a sequence variable in the schema.</span>
+<span class="sd">    :param value: The value that the variable can take.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
@@ -115,8 +118,11 @@
 
 
 <div class="viewcode-block" id="TakesValues"><a class="viewcode-back" href="../../constraints.html#pyroed.constraints.TakesValues">[docs]</a><span class="k">class</span> <span class="nc">TakesValues</span><span class="p">(</span><span class="n">Constraint</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Constrains a site to take one of a set of values.</span>
+
+<span class="sd">    :param str name: Name of a sequence variable in the schema.</span>
+<span class="sd">    :param \*values: Values that the variable can take.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="n">values</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
@@ -153,8 +159,10 @@
 
 
 <div class="viewcode-block" id="AllDifferent"><a class="viewcode-back" href="../../constraints.html#pyroed.constraints.AllDifferent">[docs]</a><span class="k">class</span> <span class="nc">AllDifferent</span><span class="p">(</span><span class="n">Constraint</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Constrains a set of sites to all have distinct values.</span>
+
+<span class="sd">    :param str \*names: Names of sequence variables that should be distinct.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">names</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
@@ -197,6 +205,8 @@
 <div class="viewcode-block" id="Not"><a class="viewcode-back" href="../../constraints.html#pyroed.constraints.Not">[docs]</a><span class="k">class</span> <span class="nc">Not</span><span class="p">(</span><span class="n">Constraint</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Negates a constraints.</span>
+
+<span class="sd">    :param Constraint arg: A constraint.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">:</span> <span class="n">Constraint</span><span class="p">):</span>
@@ -214,6 +224,9 @@
 <div class="viewcode-block" id="And"><a class="viewcode-back" href="../../constraints.html#pyroed.constraints.And">[docs]</a><span class="k">class</span> <span class="nc">And</span><span class="p">(</span><span class="n">Constraint</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Conjoins two constraints.</span>
+
+<span class="sd">    :param Constraint lhs: A constraint.</span>
+<span class="sd">    :param Constraint rhs: A constraint.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">:</span> <span class="n">Constraint</span><span class="p">,</span> <span class="n">rhs</span><span class="p">:</span> <span class="n">Constraint</span><span class="p">):</span>
@@ -233,6 +246,9 @@
 <div class="viewcode-block" id="Or"><a class="viewcode-back" href="../../constraints.html#pyroed.constraints.Or">[docs]</a><span class="k">class</span> <span class="nc">Or</span><span class="p">(</span><span class="n">Constraint</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Disjoins two constraints.</span>
+
+<span class="sd">    :param Constraint lhs: A constraint.</span>
+<span class="sd">    :param Constraint rhs: A constraint.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">:</span> <span class="n">Constraint</span><span class="p">,</span> <span class="n">rhs</span><span class="p">:</span> <span class="n">Constraint</span><span class="p">):</span>
@@ -252,6 +268,9 @@
 <div class="viewcode-block" id="Xor"><a class="viewcode-back" href="../../constraints.html#pyroed.constraints.Xor">[docs]</a><span class="k">class</span> <span class="nc">Xor</span><span class="p">(</span><span class="n">Constraint</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Exclusive or among constraints. Equivalent to ``Not(Iff(lhs, rhs))``.</span>
+
+<span class="sd">    :param Constraint lhs: A constraint.</span>
+<span class="sd">    :param Constraint rhs: A constraint.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">:</span> <span class="n">Constraint</span><span class="p">,</span> <span class="n">rhs</span><span class="p">:</span> <span class="n">Constraint</span><span class="p">):</span>
@@ -271,6 +290,9 @@
 <div class="viewcode-block" id="IfThen"><a class="viewcode-back" href="../../constraints.html#pyroed.constraints.IfThen">[docs]</a><span class="k">class</span> <span class="nc">IfThen</span><span class="p">(</span><span class="n">Constraint</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Conditional between constraints.</span>
+
+<span class="sd">    :param Constraint lhs: A constraint.</span>
+<span class="sd">    :param Constraint rhs: A constraint.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">:</span> <span class="n">Constraint</span><span class="p">,</span> <span class="n">rhs</span><span class="p">:</span> <span class="n">Constraint</span><span class="p">):</span>
@@ -290,6 +312,9 @@
 <div class="viewcode-block" id="Iff"><a class="viewcode-back" href="../../constraints.html#pyroed.constraints.Iff">[docs]</a><span class="k">class</span> <span class="nc">Iff</span><span class="p">(</span><span class="n">Constraint</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Equality among constraints.</span>
+
+<span class="sd">    :param Constraint lhs: A constraint.</span>
+<span class="sd">    :param Constraint rhs: A constraint.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">:</span> <span class="n">Constraint</span><span class="p">,</span> <span class="n">rhs</span><span class="p">:</span> <span class="n">Constraint</span><span class="p">):</span>
