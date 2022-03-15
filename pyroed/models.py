@@ -34,7 +34,7 @@ def model(
     quantization_bins=100,
 ):
     N = experiment["sequences"].size(0)
-    B = 1 + int(experiment["batch_id"].max())
+    B = 1 + int(experiment["batch_ids"].max())
     if __debug__ and not torch._C._get_tracing_state():
         validate(schema, experiment=experiment)
     name_to_int = {name: i for i, name in enumerate(schema)}
@@ -80,14 +80,14 @@ def model(
         logits = pyro.sample(
             "logits",
             dist.Normal(
-                response_loc + batch_response[experiment["batch_id"]],
+                response_loc + batch_response[experiment["batch_ids"]],
                 within_batch_scale,
             ),
         )
 
         # Quantize the observation to avoid numerical artifacts near 0 and 1.
         quantized_obs = None
-        response = experiment.get("response")
+        response = experiment.get("responses")
         if response is not None:  # during inference
             quantized_obs = (response * quantization_bins).round()
         quantized_obs = pyro.sample(
@@ -96,6 +96,6 @@ def model(
             obs=quantized_obs,
         )
         if response is None:  # during simulation
-            pyro.deterministic("response", quantized_obs / quantization_bins)
+            pyro.deterministic("responses", quantized_obs / quantization_bins)
 
     return coefs

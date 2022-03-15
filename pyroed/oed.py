@@ -67,7 +67,7 @@ def thompson_sample(
     # Repeatedly sample coefficients from the posterior,
     # and for each sample find an optimal sequence.
     with torch.no_grad():
-        logits = experiment["response"].clamp(min=0.001, max=0.999).logit()
+        logits = experiment["responses"].clamp(min=0.001, max=0.999).logit()
         extent = logits.max() - logits.min()
         temperature_schedule = extent * torch.logspace(0.0, -2.0, sa_num_steps)
 

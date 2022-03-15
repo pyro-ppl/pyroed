@@ -14,6 +14,6 @@ def load_tf_data(data_dir="./pyroed/datasets"):
     assert x.ndim == 2
     return {
         "sequences": torch.tensor(x, dtype=torch.long),
-        "batch_id": torch.zeros(len(x), dtype=torch.long),
-        "response": torch.tensor(y, dtype=torch.float),
+        "responses": torch.tensor(y, dtype=torch.float),
+        "batch_ids": torch.zeros(len(x), dtype=torch.long),
     }

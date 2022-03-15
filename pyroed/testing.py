@@ -21,7 +21,7 @@ def generate_fake_data(
     # Work around irrelevant PyTorch interface change warnings.
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", "floor_divide is deprecated", UserWarning)
-        experiment["batch_id"] = torch.arange(N) // sequences_per_batch
+        experiment["batch_ids"] = torch.arange(N) // sequences_per_batch
 
     experiment["sequences"] = torch.stack(
         [torch.randint(0, len(choices), (N,)) for choices in schema.values()], dim=-1
@@ -34,7 +34,7 @@ def generate_fake_data(
         if type(site["fn"]).__name__ != "_Subsample"
         if name != "batch_response"  # shape varies in time
     }
-    experiment["response"] = trace.nodes["response"]["value"].detach()
+    experiment["responses"] = trace.nodes["responses"]["value"].detach()
     if __debug__:
         validate(schema, feature_blocks=feature_blocks, experiment=experiment)
 

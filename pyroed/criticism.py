@@ -58,7 +58,7 @@ def criticize(
         else:
             raise ValueError(f"Unknown inference type: {inference}")
 
-        test_responses = test_data["response"]
+        test_responses = test_data["responses"]
         test_sequences = test_data["sequences"]
 
         sort_idx = np.argsort(test_responses)

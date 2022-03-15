@@ -89,8 +89,8 @@ def start_experiment(
     # This function is a thin wrapper around dict().
     experiment = {
         "sequences": sequences,
-        "response": responses,
-        "batch_id": batch_ids,
+        "responses": responses,
+        "batch_ids": batch_ids,
     }
 
     # Validate.
@@ -175,8 +175,8 @@ def update_experiment(
     """
     # If unspecified, simply create a new single batch id.
     if new_batch_ids is None:
-        new_batch_ids = experiment["batch_id"].new_full(
-            new_responses.shape, experiment["batch_id"].max().item() + 1
+        new_batch_ids = experiment["batch_ids"].new_full(
+            new_responses.shape, experiment["batch_ids"].max().item() + 1
         )
 
     # Validate.
@@ -188,8 +188,8 @@ def update_experiment(
     # Concatenate the dictionaries.
     new_experiment = {
         "sequences": new_sequences,
-        "response": new_responses,
-        "batch_id": new_batch_ids,
+        "responses": new_responses,
+        "batch_ids": new_batch_ids,
     }
     experiment = {k: torch.cat([v, new_experiment[k]]) for k, v in experiment.items()}
 

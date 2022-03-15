@@ -60,8 +60,8 @@ def validate(
     # Validate experiment.
     if experiment is not None:
         assert isinstance(experiment, dict)
-        allowed_keys = {"sequences", "batch_id", "response"}
-        required_keys = {"sequences", "batch_id"}
+        allowed_keys = {"sequences", "batch_ids", "responses"}
+        required_keys = {"sequences", "batch_ids"}
         assert allowed_keys.issuperset(experiment)
         assert required_keys.issubset(experiment)
 
@@ -71,12 +71,12 @@ def validate(
         assert sequences.dim() == 2
         assert sequences.shape[-1] == len(schema)
 
-        batch_id = experiment["batch_id"]
+        batch_id = experiment["batch_ids"]
         assert isinstance(batch_id, torch.Tensor)
         assert batch_id.dtype == torch.long
         assert batch_id.shape == sequences.shape[:1]
 
-        response = experiment.get("response")
+        response = experiment.get("responses")
         if response is not None:
             assert isinstance(response, torch.Tensor)
             assert torch.is_floating_point(response)

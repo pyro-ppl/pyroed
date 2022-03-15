@@ -30,8 +30,8 @@ def update_experiment(experiment: dict, design: set, data: dict) -> dict:
     ids = list(map(data["seq_to_id"].__getitem__, sorted(design)))
     new_data = {
         "sequences": data["sequences"][ids],
-        "batch_id": torch.zeros(len(ids)).long(),
-        "response": data["response"][ids],
+        "responses": data["responses"][ids],
+        "batch_ids": torch.zeros(len(ids)).long(),
     }
     experiment = {k: torch.cat([v, new_data[k]]) for k, v in experiment.items()}
     return experiment
@@ -62,7 +62,7 @@ def main(args):
     pyro.set_rng_seed(args.seed)
 
     data = load_tf_data()
-    ids = torch.randperm(len(data["response"]))[: args.num_initial_sequences]
+    ids = torch.randperm(len(data["responses"]))[: args.num_initial_sequences]
     experiment = {k: v[ids] for k, v in data.items()}
     data["seq_to_id"] = {
         tuple(row): i for i, row in enumerate(data["sequences"].tolist())
@@ -84,18 +84,18 @@ def main(args):
         experiments.append(update_experiment(experiments[-1], design, data))
         print(
             "[Batch #{}] Best response thus far: {:0.6g}".format(
-                batch + 1, experiments[-1]["response"].max().item()
+                batch + 1, experiments[-1]["responses"].max().item()
             )
         )
 
     print(
         "Best response from all batches: {:0.6g}".format(
-            experiments[-1]["response"].max().item()
+            experiments[-1]["responses"].max().item()
         )
     )
     print("Elapsed time: {:.4f}".format(time.time() - t0))
 
-    response_curve = [e["response"].max().item() for e in experiments]
+    response_curve = [e["responses"].max().item() for e in experiments]
 
     f = "results/results.{}.s{}.temp{}.nb{}.nspb{}.nis{}.pkl"
     f = f.format(

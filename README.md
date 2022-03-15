@@ -12,13 +12,13 @@ different positions in the sequence.
 Under the hood, Pyroed performs Thompson sampling against a Bayesian linear
 regression model that is automatically generated from a Pyroed problem
 specification, deferring to [Pyro](https://pyro.ai) for Bayesian inference
-(either variational or mcmc) and to simulated annealed Gibbs sampling for
-discrete optimization.
+(either variational or mcmc) and to annealed Gibbs sampling for discrete
+optimization.
 All numerics is performed by [PyTorch](https://pytorch.org).
 
 ## Quick Start
 
-### 1. Specify a problem in the Pyroed language
+### 1. Specify your problem in the Pyroed language
 
 First specify your sequence space by declaring a `SCHEMA`, `CONSTRAINTS`, `FEATURE_BLOCKS`, and `GIBBS_BLOCKS`. These are all simple Python data structures.
 For example to optimize a nucleotide sequence of length 10:
@@ -45,7 +45,7 @@ GIBBS_BLOCKS = pair_blocks
 ### 2. Declare your initial experiment
 
 An experiment consists of a set of `sequences`, the experimentally measured
-`response` of those sequences.
+`responses` of those sequences.
 ```python
 sequences = ["ACGAAAAAAA", "ACGAAAAATT", "AGTTTTTTTT"]
 responses = torch.tensor([0.1, 0.2, 0.6])
@@ -57,7 +57,9 @@ experiment = pyroed.start_experiment(SCHEMA, design, responses)
 
 ### 3. Iteratively create new designs
 
-At each step of our optimization loop, we'll query Pyroed for a new design
+At each step of our optimization loop, we'll query Pyroed for a new design.
+Pyroed choose the design to balance exploitation (finding sequences with high
+response) and exploration.
 ```python
 design = pyroed.get_next_design(
     SCHEMA, CONSTRAINTS, FEATURE_BLOCKS, GIBBS_BLOCKS, experiment, design_size=3
@@ -66,10 +68,10 @@ new_seqences = ["".join(s) for s in pyroed.decode_design(SCHEMA, design)]
 print(new_sequences)
 # ["CAGTTGTTGC", "GCACTCAGTT", "TAGCGTTGTT"]
 ```
-Then we'll go to the lab, measure the response of these new sequences, and
+Then we'll go to the lab, measure the responses of these new sequences, and
 append the new results to our experiment:
 ```python
-new_response = torch.tensor([0.04, 0.3, 0.25])
-experiment = pyroed.update_experiment(SCHEMA, experiment, design, new_response)
+new_responses = torch.tensor([0.04, 0.3, 0.25])
+experiment = pyroed.update_experiment(SCHEMA, experiment, design, new_responses)
 ```
 We repeat step 3 as long as we like.
