@@ -19,6 +19,9 @@ class Constraint(ABC):
 class TakesValue(Constraint):
     """
     Constrains a site to take a fixed value.
+
+    :param str name: Name of a sequence variable in the schema.
+    :param value: The value that the variable can take.
     """
 
     def __init__(self, name: str, value: Optional[str]):
@@ -45,8 +48,11 @@ class TakesValue(Constraint):
 
 
 class TakesValues(Constraint):
-    """
+    r"""
     Constrains a site to take one of a set of values.
+
+    :param str name: Name of a sequence variable in the schema.
+    :param \*values: Values that the variable can take.
     """
 
     def __init__(self, name: str, *values: Optional[str]):
@@ -83,8 +89,10 @@ class TakesValues(Constraint):
 
 
 class AllDifferent(Constraint):
-    """
+    r"""
     Constrains a set of sites to all have distinct values.
+
+    :param str \*names: Names of sequence variables that should be distinct.
     """
 
     def __init__(self, *names: str):
@@ -127,6 +135,8 @@ class AllDifferent(Constraint):
 class Not(Constraint):
     """
     Negates a constraints.
+
+    :param Constraint arg: A constraint.
     """
 
     def __init__(self, arg: Constraint):
@@ -144,6 +154,9 @@ class Not(Constraint):
 class And(Constraint):
     """
     Conjoins two constraints.
+
+    :param Constraint lhs: A constraint.
+    :param Constraint rhs: A constraint.
     """
 
     def __init__(self, lhs: Constraint, rhs: Constraint):
@@ -163,6 +176,9 @@ class And(Constraint):
 class Or(Constraint):
     """
     Disjoins two constraints.
+
+    :param Constraint lhs: A constraint.
+    :param Constraint rhs: A constraint.
     """
 
     def __init__(self, lhs: Constraint, rhs: Constraint):
@@ -182,6 +198,9 @@ class Or(Constraint):
 class Xor(Constraint):
     """
     Exclusive or among constraints. Equivalent to ``Not(Iff(lhs, rhs))``.
+
+    :param Constraint lhs: A constraint.
+    :param Constraint rhs: A constraint.
     """
 
     def __init__(self, lhs: Constraint, rhs: Constraint):
@@ -201,6 +220,9 @@ class Xor(Constraint):
 class IfThen(Constraint):
     """
     Conditional between constraints.
+
+    :param Constraint lhs: A constraint.
+    :param Constraint rhs: A constraint.
     """
 
     def __init__(self, lhs: Constraint, rhs: Constraint):
@@ -220,6 +242,9 @@ class IfThen(Constraint):
 class Iff(Constraint):
     """
     Equality among constraints.
+
+    :param Constraint lhs: A constraint.
+    :param Constraint rhs: A constraint.
     """
 
     def __init__(self, lhs: Constraint, rhs: Constraint):

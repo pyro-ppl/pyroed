@@ -1,4 +1,5 @@
 import warnings
+from typing import Dict
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -18,8 +19,8 @@ def criticize(
     constraints: Constraints,
     feature_blocks: Blocks,
     gibbs_blocks: Blocks,
-    experiment,
-    test_data,
+    experiment: Dict[str, torch.Tensor],
+    test_data: Dict[str, torch.Tensor],
     *,
     inference="svi",
     num_posterior_samples=11,
@@ -29,7 +30,18 @@ def criticize(
     svi_num_steps=201,
     jit_compile=True,
     log_every=100,
-):
+) -> None:
+    """
+    Plots observed versus predicted responses on a held out test set.
+
+    :param OrderedDict schema: A schema dict.
+    :param list constraints: A list of constraints.
+    :param list feature_blocks: A list of choice blocks for linear regression.
+    :param list gibbs_blocks: A list of choice blocks for Gibbs sampling.
+    :param dict experiment: A dict containing all old experiment data.
+    :param dict test_data: A dict containing held out test data.
+    """
+
     def tf8_model():
         return model(schema, feature_blocks, experiment)
 
@@ -102,3 +114,4 @@ def criticize(
 
         fig.tight_layout()
         plt.savefig("criticize.pdf")
+        print("Saving criticize.pdf")

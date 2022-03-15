@@ -32,6 +32,16 @@ def thompson_sample(
     """
     This trains a guide (i.e. do variational inference), draws thompson
     samples, and finds candidate designs via simulated annealing.
+
+    :param OrderedDict schema: A schema dict.
+    :param list constraints: A list of constraints.
+    :param list feature_blocks: A list of choice blocks for linear regression.
+    :param list gibbs_blocks: A list of choice blocks for Gibbs sampling.
+    :param dict experiment: A dict containing all old experiment data.
+    :param int design_size: Number of designs to try to return (sometimes
+        fewer designs are found).
+    :returns: A design as a set of tuples of choices.
+    :rtype: set
     """
 
     @poutine.scale(scale=1 / thompson_temperature)

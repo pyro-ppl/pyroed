@@ -19,6 +19,10 @@ def fit_svi(
 ) -> Callable[[], Dict[str, torch.Tensor]]:
     """
     Fits a model via stochastic variational inference.
+
+    :param callable model: A Bayesian regression model from :mod:`pyroed.models`.
+    :returns: A variational distribution that can generate samples.
+    :rtype: callable
     """
     pyro.clear_param_store()
     guide: Callable[[], Dict[str, torch.Tensor]] = AutoLowRankMultivariateNormal(model)
@@ -52,6 +56,10 @@ def fit_mcmc(
 ) -> Callable[[], Dict[str, torch.Tensor]]:
     """
     Fits a model via Hamiltonian Monte Carlo.
+
+    :param callable model: A Bayesian regression model from :mod:`pyroed.models`.
+    :returns: A sampler that draws from the empirical distribution.
+    :rtype: Sampler
     """
     kernel = NUTS(model, jit_compile=jit_compile)
     mcmc = MCMC(
@@ -68,6 +76,8 @@ def fit_mcmc(
 class Sampler:
     """
     Helper to sample from an empirical distribution.
+
+    :param dict samples: A dictionary of batches of samples.
     """
 
     def __init__(self, samples: Dict[str, torch.Tensor]):
