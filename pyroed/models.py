@@ -8,7 +8,21 @@ import torch
 from .typing import Blocks, Coefs, Schema, validate
 
 
-def linear_response(schema: Schema, coefs: Coefs, sequence: torch.Tensor):
+def linear_response(
+    schema: Schema,
+    coefs: Coefs,
+    sequence: torch.Tensor,
+) -> torch.Tensor:
+    """
+    Linear response function.
+
+    :param OrderedDict schema: A schema dict.
+    :param dict coefs: A dictionary mapping feature tuples to coefficient
+        tensors.
+    :param torch.Tensor sequence: A tensor representing a sequence.
+    :returns: The response.
+    :rtype: torch.Tensor
+    """
     if not torch._C._get_tracing_state():
         assert isinstance(schema, OrderedDict)
         assert isinstance(coefs, dict)
@@ -33,6 +47,17 @@ def model(
     *,
     quantization_bins=100,
 ):
+    """
+    A `Pyro <https://pyro.ai>`_ model for Bayesian linear regression.
+
+    :param OrderedDict schema: A schema dict.
+    :param list feature_blocks: A list of choice blocks for linear regression.
+    :param dict experiment: A dict containing all old experiment data.
+    :param int quantization_bins: Number of bins in which to quantize the
+        response likelihood.
+    :returns: A dictionary mapping feature tuples to coefficient tensors.
+    :rtype: dict
+    """
     N = experiment["sequences"].size(0)
     B = 1 + int(experiment["batch_ids"].max())
     if __debug__ and not torch._C._get_tracing_state():

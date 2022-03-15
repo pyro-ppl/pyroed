@@ -17,6 +17,9 @@ def fit_svi(
     log_every=100,
     plot=False,
 ) -> Callable[[], Dict[str, torch.Tensor]]:
+    """
+    Fits a model via stochastic variational inference.
+    """
     pyro.clear_param_store()
     guide: Callable[[], Dict[str, torch.Tensor]] = AutoLowRankMultivariateNormal(model)
     optim = ClippedAdam({"lr": lr, "lrd": 0.1 ** (1 / num_steps)})
@@ -47,6 +50,9 @@ def fit_mcmc(
     num_chains=1,
     jit_compile=False,
 ) -> Callable[[], Dict[str, torch.Tensor]]:
+    """
+    Fits a model via Hamiltonian Monte Carlo.
+    """
     kernel = NUTS(model, jit_compile=jit_compile)
     mcmc = MCMC(
         kernel,
@@ -60,6 +66,10 @@ def fit_mcmc(
 
 
 class Sampler:
+    """
+    Helper to sample from an empirical distribution.
+    """
+
     def __init__(self, samples: Dict[str, torch.Tensor]):
         self.samples = samples
         self.num_samples = len(next(iter(samples.values())))

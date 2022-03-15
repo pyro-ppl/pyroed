@@ -18,6 +18,17 @@ def validate(
     gibbs_blocks: Optional[Blocks] = None,
     experiment: Optional[Dict[str, torch.Tensor]] = None,
 ) -> None:
+    """
+    Validates a Pyroed problem specification.
+
+    :param OrderedDict schema: A schema dict.
+    :param list constraints: An optional list of constraints.
+    :param list feature_blocks: An optional list of choice blocks for linear
+        regression.
+    :param list gibbs_blocks: An optional list of choice blocks for Gibbs
+        sampling.
+    :param dict experiment: An optional dict containing all old experiment data.
+    """
     from .constraints import Constraint  # avoid import cycle
 
     # Validate schema.

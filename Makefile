@@ -1,6 +1,9 @@
 install: FORCE
 	python -m pip install -e .[test]
 
+docs: FORCE
+	$(MAKE) -C docs html
+
 lint: FORCE
 	python -m flake8
 	python -m black --check *.py pyroed test examples/*.py

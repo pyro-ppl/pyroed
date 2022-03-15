@@ -20,7 +20,15 @@ def optimize_simulated_annealing(
     log_every=100,
 ) -> torch.Tensor:
     """
-    Optimize by simulated annealing.
+    Finds an optimal sequence via annealed Gibbs sampling.
+
+    :param OrderedDict schema: A schema dict.
+    :param list constraints: A list of constraints.
+    :param list gibbs_blocks: A list of choice blocks for Gibbs sampling.
+    :param dict coefs: A dictionary mapping feature tuples to coefficient
+        tensors.
+    :returns: The single best found sequence.
+    :rtype: torch.Tensor
     """
     # Set up problem shape.
     P = len(schema)

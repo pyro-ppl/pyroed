@@ -78,7 +78,6 @@ def start_experiment(
         measured.
     :param torch.Tensor responses: A tensor of the measured responses of sequences.
     :param torch.Tensor batch_ids: An optional tensor of batch ids.
-    :param torch.Tensor
     :returns: A cumulative experiment dict.
     :rtype: dict
     """
@@ -117,6 +116,10 @@ def get_next_design(
     :param list feature_blocks: A list of choice blocks for linear regression.
     :param list gibbs_blocks: A list of choice blocks for Gibbs sampling.
     :param dict experiment: A dict containing all old experiment data.
+    :param int design_size: Number of designs to try to return (sometimes
+        fewer designs are found).
+    :param dict config: Optional config. See arguments to
+        :func:`~pyroed.oed.thompson_sample` for details.
     :returns: A tensor of encoded new sequences to measure, i.e. a ``design``.
     :rtype: torch.Tensor
     """
@@ -169,7 +172,8 @@ def update_experiment(
         :func:`get_next_design`, or may be arbitrary new sequences you have
         decided to measure, or old sequences you have measured again, or a
         combination of all three.
-    :param torch.Tensor
+    :param torch.Tensor new_responses: A tensor of the measured responses of sequences.
+    :param torch.Tensor new_batch_ids: An optional tensor of batch ids.
     :returns: A concatenated experiment.
     :rtype: dict
     """
