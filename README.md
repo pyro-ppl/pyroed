@@ -17,6 +17,19 @@ specification, deferring to [Pyro](https://pyro.ai) for Bayesian inference
 optimization.
 All numerics is performed by [PyTorch](https://pytorch.org).
 
+## Installing
+
+You can install directly from github via
+```sh
+pip install https://github.com/broadinstitute/pyroed/archive/main.zip
+```
+For developing Pyroed you can install from source
+```sh
+git clone git@github.com:broadinstitute/pyroed
+cd pyroed
+pip install -e .
+```
+
 ## Quick Start
 
 ### 1. Specify your problem in the Pyroed language
