@@ -31,7 +31,8 @@ jobs:
         make lint
 
   docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
+    needs: lint
     steps:
     - name: Set up Python
       uses: actions/setup-python@v2
@@ -49,6 +50,8 @@ jobs:
           pip freeze
     - name: Build and Commit
       uses: sphinx-notes/pages@v2
+      with:
+        documentation_path: docs/source
     - name: Push changes
       uses: ad-m/github-push-action@master
       with:
