@@ -9,7 +9,7 @@ import pyro
 import torch
 import torch.multiprocessing as mp
 
-from pyroed.api import get_next_design, start_experiment
+from pyroed.api import get_next_design, start_experiment, update_experiment
 from pyroed.constraints import AllDifferent, Iff, IfThen, TakesValue
 from pyroed.testing import generate_fake_data
 
@@ -112,6 +112,24 @@ def main(args):
         cells = [values[i] for values, i in zip(SCHEMA.values(), row)]
         print("\t".join("-" if c is None else c for c in cells))
 
+    for step in range(args.simulate_experiments):
+        print("Simulating fake responses")
+        response = torch.rand(len(design))
+        experiment = update_experiment(SCHEMA, experiment, design, response)
+        design = get_next_design(
+            SCHEMA,
+            CONSTRAINTS,
+            FEATURE_BLOCKS,
+            GIBBS_BLOCKS,
+            experiment,
+            design_size=args.sequences_per_batch,
+            config=config,
+        )
+        print("Design:")
+        for row in design.tolist():
+            cells = [values[i] for values, i in zip(SCHEMA.values(), row)]
+            print("\t".join("-" if c is None else c for c in cells))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Design sequences")
@@ -122,6 +140,7 @@ if __name__ == "__main__":
     # Simulation parameters.
     parser.add_argument("--sequences-per-batch", default=10, type=int)
     parser.add_argument("--simulate-batches", default=20)
+    parser.add_argument("--simulate-experiments", default=0, type=int)
 
     # Algorithm parameters.
     parser.add_argument("--max-tries", default=1000, type=int)

@@ -13,7 +13,7 @@ format: FORCE
 
 test: lint FORCE
 	pytest -vx test
-	python examples/immune_sequence.py
+	python examples/immune_sequence.py --simulate-experiments=1
 	@echo PASSED
 
 FORCE:
