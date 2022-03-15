@@ -199,6 +199,10 @@ class Xor(Constraint):
 
 
 class IfThen(Constraint):
+    """
+    Conditional between constraints.
+    """
+
     def __init__(self, lhs: Constraint, rhs: Constraint):
         super().__init__()
         self.lhs = lhs
@@ -214,6 +218,10 @@ class IfThen(Constraint):
 
 
 class Iff(Constraint):
+    """
+    Equality among constraints.
+    """
+
     def __init__(self, lhs: Constraint, rhs: Constraint):
         super().__init__()
         self.lhs = lhs
