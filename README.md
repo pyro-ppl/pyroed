@@ -1,4 +1,5 @@
 [![Build Status](https://github.com/broadinstitute/pyroed/workflows/CI/badge.svg)](https://github.com/broadinstitute/pyroed/actions)
+[![Docs](https://img.shields.io/badge/api-docs-blue)](https://broadinstitute.github.io/pyroed/)
 
 # Bayesian optimization of discrete sequences
 
