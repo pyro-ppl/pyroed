@@ -1,6 +1,6 @@
 [![Build Status](https://github.com/broadinstitute/pyroed/workflows/CI/badge.svg)](https://github.com/broadinstitute/pyroed/actions)
 
-# Bayesian optimization of discrete sequences with constraints
+# Bayesian optimization of discrete sequences
 
 Pyroed is a framework for model-based optimization of sequences of discrete
 choices with constraints among choices.
@@ -47,18 +47,14 @@ GIBBS_BLOCKS = pair_blocks
 ### 2. Declare your initial experiment
 
 An experiment consists of a set of `sequences`, the experimentally measured
-`response` of those sequences, and the `batch_id` of each sequence (it's fine to measure a sequence twice, e.g. a reference sequence within each batch).
+`response` of those sequences.
 ```python
-sequences = ["ACGAAAAAAA", "ACGAAAAATT", "AGTTTTTTTT"],
-responses = torch.tensor([0.1, 0.2, 0.6]),
-batch_ids = torch.tensor([0, 0, 0]),  # the initial batch
-```
-We pack these into a dictionary that we'll maintain throughout our workflow.
-```
+sequences = ["ACGAAAAAAA", "ACGAAAAATT", "AGTTTTTTTT"]
+responses = torch.tensor([0.1, 0.2, 0.6])
+
+# Collect these into a dictionary that we'll maintain throughout our workflow.
 design = pyroed.encode_design(SCHEMA, sequences)
-assert isinstance(design, torch.Tensor)
-experiment = pyroed.start_experiment(SCHEMA, design, responses, batch_ids)
-assert isinstance(experiment, dict)
+experiment = pyroed.start_experiment(SCHEMA, design, responses)
 ```
 
 ### 3. Iteratively create new designs
@@ -68,19 +64,14 @@ At each step of our optimization loop, we'll query Pyroed for a new design
 design = pyroed.get_next_design(
     SCHEMA, CONSTRAINTS, FEATURE_BLOCKS, GIBBS_BLOCKS, experiment, design_size=3
 )
-assert isinstance(design, torch.Tensor)
 new_seqences = ["".join(s) for s in pyroed.decode_design(SCHEMA, design)]
 print(new_sequences)
+# ["CAGTTGTTGC", "GCACTCAGTT", "TAGCGTTGTT"]
 ```
-```
-["CAGTTGTTGC", "GCACTCAGTT", "TAGCGTTGTT"]
-```
-Then we'll go the lab and measure the response of these new sequences
+Then we'll go to the lab, measure the response of these new sequences, and
+append the new results to our experiment:
 ```python
 new_response = torch.tensor([0.04, 0.3, 0.25])
-```
-Finally we can accumulate this back into our experiment
-```python
 experiment = pyroed.update_experiment(SCHEMA, experiment, design, new_response)
 ```
-We repeat step 3 as long as we want.
+We repeat step 3 as long as we like.
