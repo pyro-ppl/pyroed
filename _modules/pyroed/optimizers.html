@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pyroed.optimizers &mdash; Pyroed  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> Pyroed
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../constraints.html">Constraints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../criticism.html">Criticism</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../internals.html">Internals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../testing.html">Testing Utilities</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Pyroed</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      <li>pyroed.optimizers</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for pyroed.optimizers</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">operator</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">reduce</span>
+
+<span class="kn">import</span> <span class="nn">pyro.distributions</span> <span class="k">as</span> <span class="nn">dist</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="kn">from</span> <span class="nn">.models</span> <span class="kn">import</span> <span class="n">linear_response</span>
+<span class="kn">from</span> <span class="nn">.typing</span> <span class="kn">import</span> <span class="n">Blocks</span><span class="p">,</span> <span class="n">Constraints</span><span class="p">,</span> <span class="n">Schema</span>
+
+
+<div class="viewcode-block" id="optimize_simulated_annealing"><a class="viewcode-back" href="../../internals.html#pyroed.optimizers.optimize_simulated_annealing">[docs]</a><span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">optimize_simulated_annealing</span><span class="p">(</span>
+    <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
+    <span class="n">constraints</span><span class="p">:</span> <span class="n">Constraints</span><span class="p">,</span>
+    <span class="n">gibbs_blocks</span><span class="p">:</span> <span class="n">Blocks</span><span class="p">,</span>
+    <span class="n">coefs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">temperature_schedule</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">max_tries</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>
+    <span class="n">log_every</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Finds an optimal sequence via annealed Gibbs sampling.</span>
+
+<span class="sd">    :param OrderedDict schema: A schema dict.</span>
+<span class="sd">    :param list constraints: A list of constraints.</span>
+<span class="sd">    :param list gibbs_blocks: A list of choice blocks for Gibbs sampling.</span>
+<span class="sd">    :param dict coefs: A dictionary mapping feature tuples to coefficient</span>
+<span class="sd">        tensors.</span>
+<span class="sd">    :returns: The single best found sequence.</span>
+<span class="sd">    :rtype: torch.Tensor</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Set up problem shape.</span>
+    <span class="n">P</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
+    <span class="n">num_categories</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span>
+    <span class="n">bounds</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">constraints</span><span class="o">.</span><span class="n">integer_interval</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_categories</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">gibbs_blocks</span><span class="p">,</span> <span class="p">[]))</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="n">schema</span><span class="p">),</span> <span class="s2">&quot;invalid gibbs blocks&quot;</span>
+    <span class="n">name_to_int</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">schema</span><span class="p">)}</span>
+    <span class="n">int_blocks</span> <span class="o">=</span> <span class="p">[[</span><span class="n">name_to_int</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">block</span><span class="p">]</span> <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">gibbs_blocks</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">constraint_fn</span><span class="p">(</span><span class="n">seq</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">constraints</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="n">reduce</span><span class="p">(</span><span class="n">operator</span><span class="o">.</span><span class="n">and_</span><span class="p">,</span> <span class="p">(</span><span class="n">c</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">seq</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">constraints</span><span class="p">))</span>
+
+    <span class="c1"># Initialize to a single random uniform feasible state.</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_tries</span><span class="p">):</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">Cp</span><span class="p">,</span> <span class="p">())</span> <span class="k">for</span> <span class="n">Cp</span> <span class="ow">in</span> <span class="n">num_categories</span><span class="o">.</span><span class="n">tolist</span><span class="p">()]</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="n">bounds</span><span class="o">.</span><span class="n">check</span><span class="p">(</span><span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">constraint_fn</span><span class="p">(</span><span class="n">state</span><span class="p">):</span>
+            <span class="k">break</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">constraint_fn</span><span class="p">(</span><span class="n">state</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Failed to find a feasible initial state&quot;</span><span class="p">)</span>
+    <span class="n">best_state</span> <span class="o">=</span> <span class="n">state</span>
+    <span class="n">best_logits</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">linear_response</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">coefs</span><span class="p">,</span> <span class="n">state</span><span class="p">))</span>
+
+    <span class="c1"># Anneal, recording the best state.</span>
+    <span class="k">for</span> <span class="n">step</span><span class="p">,</span> <span class="n">temperature</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">temperature_schedule</span><span class="p">):</span>
+        <span class="c1"># Choose a random Gibbs block.</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">gibbs_blocks</span><span class="p">),</span> <span class="p">()))</span>
+        <span class="n">block</span> <span class="o">=</span> <span class="n">int_blocks</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
+        <span class="n">Cs</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">num_categories</span><span class="p">[</span><span class="n">p</span><span class="p">])</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">block</span><span class="p">]</span>
+
+        <span class="c1"># Create a cartesian product over choices within the block.</span>
+        <span class="n">nbhd</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="n">Cs</span><span class="p">))</span> <span class="o">+</span> <span class="p">(</span><span class="n">P</span><span class="p">,))</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">C</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">Cs</span><span class="p">)):</span>
+            <span class="n">nbhd</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">C</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,)</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+        <span class="n">nbhd</span> <span class="o">=</span> <span class="n">nbhd</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">P</span><span class="p">)</span>
+
+        <span class="c1"># Restrict to feasible states.</span>
+        <span class="n">ok</span> <span class="o">=</span> <span class="n">constraint_fn</span><span class="p">(</span><span class="n">nbhd</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ok</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">nbhd</span> <span class="o">=</span> <span class="n">nbhd</span><span class="p">[</span><span class="n">ok</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">bounds</span><span class="o">.</span><span class="n">check</span><span class="p">(</span><span class="n">nbhd</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+        <span class="c1"># Randomly sample variables in the block wrt an annealed logits.</span>
+        <span class="n">logits</span> <span class="o">=</span> <span class="n">linear_response</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">coefs</span><span class="p">,</span> <span class="n">nbhd</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">logits</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="n">choice</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span><span class="n">logits</span><span class="o">=</span><span class="n">logits</span> <span class="o">/</span> <span class="n">temperature</span><span class="p">)</span><span class="o">.</span><span class="n">sample</span><span class="p">()</span>
+        <span class="n">state</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">nbhd</span><span class="p">[</span><span class="n">choice</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">bounds</span><span class="o">.</span><span class="n">check</span><span class="p">(</span><span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="n">constraint_fn</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+
+        <span class="c1"># Save the best response.</span>
+        <span class="n">current_logits</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">logits</span><span class="p">[</span><span class="n">choice</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">current_logits</span> <span class="o">&gt;</span> <span class="n">best_logits</span><span class="p">:</span>
+            <span class="n">best_state</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+            <span class="n">best_logits</span> <span class="o">=</span> <span class="n">current_logits</span>
+        <span class="k">if</span> <span class="n">log_every</span> <span class="ow">and</span> <span class="n">step</span> <span class="o">%</span> <span class="n">log_every</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;sa step </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2"> temp=</span><span class="si">{</span><span class="n">temperature</span><span class="si">:</span><span class="s2">0.3g</span><span class="si">}</span><span class="s2"> &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;logits=</span><span class="si">{</span><span class="n">current_logits</span><span class="si">:</span><span class="s2">0.6g</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">best_state</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Fritz Obermeyer, Martin Jankowiak.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
