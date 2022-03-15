@@ -70,14 +70,12 @@ def criticize(
         else:
             raise ValueError(f"Unknown inference type: {inference}")
 
-        test_responses = test_data["responses"]
-        test_sequences = test_data["sequences"]
+        test_responses = test_data["responses"].numpy()
+        test_sequences = test_data["sequences"].numpy()
 
         sort_idx = np.argsort(test_responses)
-        test_responses, test_sequences = (
-            test_responses[sort_idx],
-            test_sequences[sort_idx],
-        )
+        test_responses = test_responses[sort_idx]
+        test_sequences = test_sequences[sort_idx]
 
         predictions = []
         for _ in range(num_posterior_samples):
