@@ -9,7 +9,7 @@ import pyro
 import torch
 import torch.multiprocessing as mp
 
-from pyroed.api import get_next_design
+from pyroed.api import get_next_design, start_experiment
 from pyroed.constraints import AllDifferent, Iff, IfThen, TakesValue
 from pyroed.testing import generate_fake_data
 
@@ -70,11 +70,8 @@ def load_experiment(filename, schema):
     else:
         warnings.warn(f"Found no '{col}' column, assuming a single batch")
 
-    return {
-        "sequences": sequences,
-        "batch_id": batch_id,
-        "response": response,
-    }
+    experiment = start_experiment(SCHEMA, sequences, response, batch_id)
+    return experiment
 
 
 def main(args):
@@ -111,7 +108,7 @@ def main(args):
         config=config,
     )
     print("Design:")
-    for row in sorted(design):
+    for row in design.tolist():
         cells = [values[i] for values, i in zip(SCHEMA.values(), row)]
         print("\t".join("-" if c is None else c for c in cells))
 
