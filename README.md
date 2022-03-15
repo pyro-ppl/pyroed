@@ -16,8 +16,6 @@ specification, deferring to [Pyro](https://pyro.ai) for Bayesian inference
 discrete optimization.
 All numerics is performed by [PyTorch](https://pytorch.org).
 
-For detailed use see the [examples/](examples/) directory.
-
 ## Quick Start
 
 ### 1. Specify a problem in the Pyroed language

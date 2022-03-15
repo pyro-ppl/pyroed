@@ -67,18 +67,16 @@ def criticize(
             test_sequences[sort_idx],
         )
 
-        test_predictions = []
-
+        predictions = []
         for _ in range(num_posterior_samples):
             with poutine.condition(data=sampler()):
                 coefs = model(schema, feature_blocks, experiment)
                 test_prediction = linear_response(
                     schema, coefs, test_sequences
                 ).sigmoid()
-                test_predictions.append(test_prediction)
+                predictions.append(test_prediction)
 
-        test_predictions = torch.stack(test_predictions).cpu().data.numpy()
-        assert isinstance(test_predictions, np.ndarray)
+        test_predictions = torch.stack(predictions).detach().cpu().numpy()
         mean_predictions = test_predictions.mean(0)
         std_predictions = test_predictions.std(0)
 
@@ -92,8 +90,8 @@ def criticize(
 
         plt.errorbar(
             test_responses,
-            mean_predictions,
-            yerr=std_predictions,
+            mean_predictions.numpy(),
+            yerr=std_predictions.numpy(),
             marker="o",
             linestyle="None",
         )
