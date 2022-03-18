@@ -134,7 +134,6 @@
 
 <div class="viewcode-block" id="start_experiment"><a class="viewcode-back" href="../../api.html#pyroed.api.start_experiment">[docs]</a><span class="k">def</span> <span class="nf">start_experiment</span><span class="p">(</span>
     <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
-    <span class="n">experiment</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
     <span class="n">sequences</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">responses</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">batch_ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -143,7 +142,6 @@
 <span class="sd">    Creates a cumulative experiment with initial data.</span>
 
 <span class="sd">    :param OrderedDict schema: A schema dict.</span>
-<span class="sd">    :param dict experiment: A dict containing all old experiment data.</span>
 <span class="sd">    :param torch.Tensor sequences: A tensor of encoded sequences that have been</span>
 <span class="sd">        measured.</span>
 <span class="sd">    :param torch.Tensor responses: A tensor of the measured responses of sequences.</span>
