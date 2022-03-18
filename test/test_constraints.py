@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import List
+from typing import List, Optional
 
 from pyroed.api import encode_design
 from pyroed.constraints import (
@@ -13,6 +13,7 @@ from pyroed.constraints import (
     TakesValues,
     Xor,
 )
+from pyroed.typing import Schema
 
 
 def stringify(bools: List[bool]) -> str:
@@ -20,11 +21,12 @@ def stringify(bools: List[bool]) -> str:
 
 
 def test_immune_sequence():
-    SCHEMA = OrderedDict()
+    SCHEMA: Schema = OrderedDict()
     SCHEMA["Protein 1"] = ["Prot1", "Prot2", None]
     SCHEMA["Protein 2"] = ["Prot3", "HLA1", "HLA2", "HLA3", "HLA4", None]
     SCHEMA["Signalling Pep"] = ["Sig1", "Sig2", None]
-    SCHEMA["EP"] = [f"Ep{i}" for i in range(1, 10 + 1)] + [None]
+    SCHEMA["EP"] = [f"Ep{i}" for i in range(1, 10 + 1)]
+    SCHEMA["EP"].append(None)
     SCHEMA["Linker"] = ["Link1", None]
     SCHEMA["Internal"] = ["Int1", "Int2", "Int3", "Int3", None]
     SCHEMA["2A-1"] = ["twoa1", "twoa2", None]
@@ -40,7 +42,7 @@ def test_immune_sequence():
         Iff(TakesValue("Protein 2", "Prot3"), TakesValue("2A-2", None)),
     ]
 
-    design = [
+    design: List[List[Optional[str]]] = [
         ["Prot1", "Prot3", "Sig1", "Ep1", "Link1", "Int1", "twoa1", None, "twoa2"],
         ["Prot1", "Prot3", "Sig1", "Ep1", "Link1", "Int1", "twoa1", None, "twoa1"],
         [None, "Prot3", "Sig1", "Ep1", "Link1", "Int1", "twoa1", None, "twoa2"],
@@ -75,7 +77,7 @@ def test_takes_value():
         TakesValue("bar", None),
     ]
 
-    design = [
+    design: List[List[Optional[str]]] = [
         ["a", "a"],
         ["a", "b"],
         ["a", None],
@@ -115,7 +117,7 @@ def test_takes_values():
         TakesValues("bar"),
     ]
 
-    design = [
+    design: List[List[Optional[str]]] = [
         ["a", "a"],
         ["a", "b"],
         ["a", None],
@@ -159,7 +161,7 @@ def test_logic():
         IfThen(foo, bar),
     ]
 
-    design = [
+    design: List[List[Optional[str]]] = [
         ["a", "a"],
         ["a", None],
         [None, "a"],

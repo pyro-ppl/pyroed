@@ -26,7 +26,7 @@ def thompson_sample(
     sa_num_steps=1000,
     max_tries=1000,
     thompson_temperature=1.0,
-    jit_compile=False,
+    jit_compile=None,
     log_every=100,
 ) -> Set[Tuple[int, ...]]:
     """
@@ -43,10 +43,12 @@ def thompson_sample(
     :returns: A design as a set of tuples of choices.
     :rtype: set
     """
+    # Pass max_batch_id separately as a python int to allow jitting.
+    max_batch_id = int(experiment["batch_ids"].max())
 
     @poutine.scale(scale=1 / thompson_temperature)
     def hot_model():
-        return model(schema, feature_blocks, experiment)
+        return model(schema, feature_blocks, experiment, max_batch_id=max_batch_id)
 
     # Fit a posterior distribution over parameters given experiment data.
     with warnings.catch_warnings():
@@ -56,6 +58,8 @@ def thompson_sample(
             torch.jit.TracerWarning,
         )
         if inference == "svi":
+            if jit_compile is None:
+                jit_compile = True  # default to False to avoid jit error
             sampler = fit_svi(
                 hot_model,
                 num_steps=svi_num_steps,
@@ -64,6 +68,8 @@ def thompson_sample(
                 log_every=log_every,
             )
         elif inference == "mcmc":
+            if jit_compile is None:
+                jit_compile = True  # default to True for speed
             sampler = fit_mcmc(
                 hot_model,
                 num_samples=mcmc_num_samples,

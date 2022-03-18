@@ -52,7 +52,7 @@ def fit_mcmc(
     num_samples=500,
     warmup_steps=500,
     num_chains=1,
-    jit_compile=False,
+    jit_compile=True,
 ) -> Callable[[], Dict[str, torch.Tensor]]:
     """
     Fits a model via Hamiltonian Monte Carlo.

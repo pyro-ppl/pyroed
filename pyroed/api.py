@@ -64,7 +64,6 @@ def decode_design(schema: Schema, sequences: torch.Tensor) -> List[List[Optional
 
 def start_experiment(
     schema: Schema,
-    experiment: Dict[str, torch.Tensor],
     sequences: torch.Tensor,
     responses: torch.Tensor,
     batch_ids: Optional[torch.Tensor] = None,
@@ -73,7 +72,6 @@ def start_experiment(
     Creates a cumulative experiment with initial data.
 
     :param OrderedDict schema: A schema dict.
-    :param dict experiment: A dict containing all old experiment data.
     :param torch.Tensor sequences: A tensor of encoded sequences that have been
         measured.
     :param torch.Tensor responses: A tensor of the measured responses of sequences.

@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Dict
+from typing import Dict, Optional
 
 import pyro
 import pyro.distributions as dist
@@ -45,6 +45,7 @@ def model(
     feature_blocks: Blocks,
     experiment: Dict[str, torch.Tensor],  # sequences, batch_id, optional(response)
     *,
+    max_batch_id: Optional[int] = None,
     quantization_bins=100,
 ):
     """
@@ -58,8 +59,10 @@ def model(
     :returns: A dictionary mapping feature tuples to coefficient tensors.
     :rtype: dict
     """
+    if max_batch_id is None:
+        max_batch_id = int(experiment["batch_ids"].max())
     N = experiment["sequences"].size(0)
-    B = 1 + int(experiment["batch_ids"].max())
+    B = 1 + max_batch_id
     if __debug__ and not torch._C._get_tracing_state():
         validate(schema, experiment=experiment)
     name_to_int = {name: i for i, name in enumerate(schema)}

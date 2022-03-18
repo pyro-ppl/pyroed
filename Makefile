@@ -8,7 +8,7 @@ lint: FORCE
 	python -m flake8
 	python -m black --check *.py pyroed test examples/*.py
 	python -m isort --check .
-	python -m mypy --install-types --non-interactive pyroed
+	python -m mypy --install-types --non-interactive pyroed test
 
 format: FORCE
 	python -m black *.py pyroed test examples/*.py
