@@ -1,3 +1,26 @@
+"""
+We consider data from
+
+Barrera, Luis A., et al. "Survey of variation in human transcription factors reveals
+prevalent DNA binding changes." Science 351.6280 (2016): 1450-1454.
+
+for the PBX4 transcription factor. The dataset consists of measurements of the binding
+affinities of PBX4 to all possible DNA sequences of length 8, i.e. for a total of
+4^8 = 65536 sequences. Since this dataset is exhaustive we can use it to do a
+semi-synthetic experiment in which we first "measure" a small number of binding
+affinities and then do additional "experiments" in multiple rounds.
+
+In the script below we build a pipeline to run multiple trials of such roll-out
+experiments under different parameter settings so we can assess whether optimal
+experimental design (OED) is making our adaptive experiments more efficient. In
+particular we ask whether adaptive experiments are more efficient at identifying
+high-affinity DNA sequences than random experimentation in which designs
+(DNA sequences) are chosen at random.
+
+The results of this script are visualized here:
+https://github.com/broadinstitute/pyroed/blob/main/examples/oed_vs_rand.png
+"""
+
 # type: ignore
 
 import argparse
@@ -10,7 +33,6 @@ import torch
 
 from pyroed.datasets import load_tf_data
 from pyroed.oed import thompson_sample
-
 
 SCHEMA = OrderedDict()
 for n in range(8):
