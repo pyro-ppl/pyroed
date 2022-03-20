@@ -46,10 +46,10 @@ for i in range(10):
 CONSTRAINTS = [AllDifferent("nuc0", "nuc1", "nuc2"),
                Iff(TakesValue("nuc8", "T"), TakesValue("nuc9", "T"))]
 
-# Give the Bayesian linear regression model coefficients for each nucleotides
-# and for each consecutive pair of nucleotides.
+# Specify that the Bayesian linear regression model incorporates coefficients for 
+# each nucleotide and for each consecutive pair of nucleotides.
 single_blocks = list(SCHEMA)
-pair_blocks = [[a, b] for a, b in zip(single_blocks, single_blocks[1:])]
+pair_blocks = [[a, b] for a, b in zip(single_blocks[:-1], single_blocks[1:])]
 FEATURE_BLOCKS = single_blocks + pair_blocks
 
 # Finally define Gibbs sampling blocks for the discrete optimization.
@@ -58,7 +58,7 @@ GIBBS_BLOCKS = pair_blocks
 
 ### 2. Declare your initial experiment
 
-An experiment consists of a set of `sequences`, the experimentally measured
+An experiment consists of a set of `sequences` and the experimentally measured
 `responses` of those sequences.
 ```python
 sequences = ["ACGAAAAAAA", "ACGAAAAATT", "AGTTTTTTTT"]
@@ -89,3 +89,8 @@ new_responses = torch.tensor([0.04, 0.3, 0.25])
 experiment = pyroed.update_experiment(SCHEMA, experiment, design, new_responses)
 ```
 We repeat step 3 as long as we like.
+
+
+### 4. Demo: Semi-Synthetic Experiment 
+
+![plot](./examples/oed_vs_rand.png)
