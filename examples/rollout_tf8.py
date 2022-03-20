@@ -8,8 +8,9 @@ from collections import OrderedDict
 import pyro
 import torch
 
-from pyroed.datasets.data import load_tf_data
+from pyroed.datasets import load_tf_data
 from pyroed.oed import thompson_sample
+
 
 SCHEMA = OrderedDict()
 for n in range(8):
@@ -97,7 +98,7 @@ def main(args):
 
     response_curve = [e["responses"].max().item() for e in experiments]
 
-    f = "results/results.{}.s{}.temp{}.nb{}.nspb{}.nis{}.pkl"
+    f = "rollout_results.{}.s{}.temp{}.nb{}.nspb{}.nis{}.pkl"
     f = f.format(
         args.features,
         args.seed,
@@ -116,7 +117,7 @@ if __name__ == "__main__":
     parser.add_argument("--num-sequences-per-batch", default=10, type=int)
     parser.add_argument("--num-batches", default=7)
     parser.add_argument("--seed", default=0, type=int)
-    parser.add_argument("--thompson-temperature", default=4.0, type=float)
+    parser.add_argument("--thompson-temperature", default=1.0, type=float)
     parser.add_argument(
         "--features", type=str, default="singleton", choices=["singleton", "pairwise"]
     )
