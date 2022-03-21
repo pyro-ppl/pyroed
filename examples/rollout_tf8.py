@@ -78,6 +78,7 @@ def make_design(
         svi_num_steps=1000,
         sa_num_steps=400,
         log_every=0,
+        jit_compile=False,
     )
 
 
@@ -91,10 +92,9 @@ def main(args):
         tuple(row): i for i, row in enumerate(data["sequences"].tolist())
     }
 
-    print(
-        f"[Initial batch] Best response thus far: {experiment['response'].max():0.6g}"
-    )
     experiments = [experiment]
+    best_response = experiment["responses"].max().item()
+    print("[0th batch] Best response thus far: {:0.6g}".format(best_response))
     t0 = time.time()
 
     for batch in range(args.num_batches):
