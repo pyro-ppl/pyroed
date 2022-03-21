@@ -7,6 +7,9 @@ import torch
 def load_tf_data(data_dir="./pyroed/datasets"):
     """
     Return tuple (x, y) of numpy arrays for PBX4 transcription factor data.
+
+    Reference: Barrera, Luis A., et al. "Survey of variation in human transcription
+    factors reveals prevalent DNA binding changes." Science 351.6280 (2016): 1450-1454.
     """
     xy = np.load(gzip.GzipFile(data_dir + "/tf_bind_8-PBX4_REF_R2.npy.gz", "rb"))
     x, y = xy[:, :-1], xy[:, -1]
