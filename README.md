@@ -91,6 +91,6 @@ experiment = pyroed.update_experiment(SCHEMA, experiment, design, new_responses)
 We repeat step 3 as long as we like.
 
 
-### 4. Demo: Semi-Synthetic Experiment 
+## Demo: Semi-Synthetic Experiment 
 
 ![plot](./examples/oed_vs_rand.png)
