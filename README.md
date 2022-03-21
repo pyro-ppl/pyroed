@@ -93,4 +93,8 @@ We repeat step 3 as long as we like.
 
 ## Demo: Semi-Synthetic Experiment 
 
+For a more in-depth demonstration of Pyroed usage in practice on some transcription factor data
+see [`rollout_tf8.py`](https://github.com/broadinstitute/pyroed/blob/main/examples/rollout_tf8.py)
+and [`tf8_demo.ipynb`](https://github.com/broadinstitute/pyroed/blob/main/examples/tf8_demo.ipynb).
+
 ![plot](./examples/oed_vs_rand.png)

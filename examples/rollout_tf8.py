@@ -120,7 +120,7 @@ def main(args):
 
     response_curve = [e["responses"].max().item() for e in experiments]
 
-    f = "rollout_results.{}.s{}.temp{}.nb{}.nspb{}.nis{}.pkl"
+    f = "results.{}.s{}.temp{}.nb{}.nspb{}.nis{}.pkl"
     f = f.format(
         args.features,
         args.seed,
