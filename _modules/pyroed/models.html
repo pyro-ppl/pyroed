@@ -102,8 +102,9 @@
 
     <span class="n">result</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">coef</span> <span class="ow">in</span> <span class="n">coefs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="n">coef</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">_C</span><span class="o">.</span><span class="n">_get_tracing_state</span><span class="p">():</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">coef</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
         <span class="n">index</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">choices</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">key</span><span class="p">)</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">result</span> <span class="o">+</span> <span class="n">coef</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
 
@@ -116,7 +117,8 @@
     <span class="n">experiment</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>  <span class="c1"># sequences, batch_id, optional(response)</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">max_batch_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">quantization_bins</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">response_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;unit_interval&quot;</span><span class="p">,</span>
+    <span class="n">quantization_bins</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A `Pyro &lt;https://pyro.ai&gt;`_ model for Bayesian linear regression.</span>
@@ -124,8 +126,9 @@
 <span class="sd">    :param OrderedDict schema: A schema dict.</span>
 <span class="sd">    :param list feature_blocks: A list of choice blocks for linear regression.</span>
 <span class="sd">    :param dict experiment: A dict containing all old experiment data.</span>
+<span class="sd">    :param str response_type: Type of response, one of: &quot;real&quot;, &quot;unit_interval&quot;.</span>
 <span class="sd">    :param int quantization_bins: Number of bins in which to quantize the</span>
-<span class="sd">        response likelihood.</span>
+<span class="sd">        &quot;unit_interval&quot; response response_type.</span>
 <span class="sd">    :returns: A dictionary mapping feature tuples to coefficient tensors.</span>
 <span class="sd">    :rtype: dict</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -161,10 +164,9 @@
     <span class="n">response_loc</span> <span class="o">=</span> <span class="n">linear_response</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">coefs</span><span class="p">,</span> <span class="n">experiment</span><span class="p">[</span><span class="s2">&quot;sequences&quot;</span><span class="p">])</span>
 
     <span class="c1"># Observe a noisy response.</span>
-    <span class="c1"># This likelihood could be generalized to counts or whatever.</span>
     <span class="n">within_batch_scale</span> <span class="o">=</span> <span class="n">pyro</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="s2">&quot;within_batch_scale&quot;</span><span class="p">,</span> <span class="n">dist</span><span class="o">.</span><span class="n">LogNormal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">B</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">batch_response</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">B</span><span class="p">)</span>
+        <span class="n">within_batch_loc</span> <span class="o">=</span> <span class="n">response_loc</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="c1"># Model batch effects.</span>
         <span class="n">across_batch_scale</span> <span class="o">=</span> <span class="n">pyro</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="s2">&quot;across_batch_scale&quot;</span><span class="p">,</span> <span class="n">dist</span><span class="o">.</span><span class="n">LogNormal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
@@ -174,27 +176,39 @@
             <span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">_C</span><span class="o">.</span><span class="n">_get_tracing_state</span><span class="p">():</span>
                 <span class="k">assert</span> <span class="n">batch_response</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">B</span><span class="p">,)</span>
-    <span class="k">with</span> <span class="n">pyro</span><span class="o">.</span><span class="n">plate</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
-        <span class="n">logits</span> <span class="o">=</span> <span class="n">pyro</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
-            <span class="s2">&quot;logits&quot;</span><span class="p">,</span>
-            <span class="n">dist</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span>
-                <span class="n">response_loc</span> <span class="o">+</span> <span class="n">batch_response</span><span class="p">[</span><span class="n">experiment</span><span class="p">[</span><span class="s2">&quot;batch_ids&quot;</span><span class="p">]],</span>
-                <span class="n">within_batch_scale</span><span class="p">,</span>
-            <span class="p">),</span>
-        <span class="p">)</span>
+        <span class="n">within_batch_loc</span> <span class="o">=</span> <span class="n">response_loc</span> <span class="o">+</span> <span class="n">batch_response</span><span class="p">[</span><span class="n">experiment</span><span class="p">[</span><span class="s2">&quot;batch_ids&quot;</span><span class="p">]]</span>
 
-        <span class="c1"># Quantize the observation to avoid numerical artifacts near 0 and 1.</span>
-        <span class="n">quantized_obs</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">response</span> <span class="o">=</span> <span class="n">experiment</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;responses&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">response</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># during inference</span>
-            <span class="n">quantized_obs</span> <span class="o">=</span> <span class="p">(</span><span class="n">response</span> <span class="o">*</span> <span class="n">quantization_bins</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">()</span>
-        <span class="n">quantized_obs</span> <span class="o">=</span> <span class="n">pyro</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
-            <span class="s2">&quot;quantized_response&quot;</span><span class="p">,</span>
-            <span class="n">dist</span><span class="o">.</span><span class="n">Binomial</span><span class="p">(</span><span class="n">quantization_bins</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">),</span>
-            <span class="n">obs</span><span class="o">=</span><span class="n">quantized_obs</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="k">if</span> <span class="n">response</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># during simulation</span>
-            <span class="n">pyro</span><span class="o">.</span><span class="n">deterministic</span><span class="p">(</span><span class="s2">&quot;responses&quot;</span><span class="p">,</span> <span class="n">quantized_obs</span> <span class="o">/</span> <span class="n">quantization_bins</span><span class="p">)</span>
+    <span class="c1"># This likelihood can be generalized to counts or other datatype.</span>
+    <span class="k">with</span> <span class="n">pyro</span><span class="o">.</span><span class="n">plate</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">response_type</span> <span class="o">==</span> <span class="s2">&quot;real&quot;</span><span class="p">:</span>
+            <span class="n">pyro</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
+                <span class="s2">&quot;responses&quot;</span><span class="p">,</span>
+                <span class="n">dist</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="n">within_batch_loc</span><span class="p">,</span> <span class="n">within_batch_scale</span><span class="p">),</span>
+                <span class="n">obs</span><span class="o">=</span><span class="n">experiment</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;responses&quot;</span><span class="p">),</span>
+            <span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">response_type</span> <span class="o">==</span> <span class="s2">&quot;unit_interval&quot;</span><span class="p">:</span>
+            <span class="n">logits</span> <span class="o">=</span> <span class="n">pyro</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
+                <span class="s2">&quot;logits&quot;</span><span class="p">,</span>
+                <span class="n">dist</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="n">within_batch_loc</span><span class="p">,</span> <span class="n">within_batch_scale</span><span class="p">),</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Quantize the observation to avoid numerical artifacts near 0 and 1.</span>
+            <span class="n">quantized_obs</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">experiment</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;responses&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">response</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># during inference</span>
+                <span class="n">quantized_obs</span> <span class="o">=</span> <span class="p">(</span><span class="n">response</span> <span class="o">*</span> <span class="n">quantization_bins</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">()</span>
+            <span class="n">quantized_obs</span> <span class="o">=</span> <span class="n">pyro</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
+                <span class="s2">&quot;quantized_response&quot;</span><span class="p">,</span>
+                <span class="n">dist</span><span class="o">.</span><span class="n">Binomial</span><span class="p">(</span><span class="n">quantization_bins</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">),</span>
+                <span class="n">obs</span><span class="o">=</span><span class="n">quantized_obs</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">assert</span> <span class="n">quantized_obs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">response</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># during simulation</span>
+                <span class="n">pyro</span><span class="o">.</span><span class="n">deterministic</span><span class="p">(</span><span class="s2">&quot;responses&quot;</span><span class="p">,</span> <span class="n">quantized_obs</span> <span class="o">/</span> <span class="n">quantization_bins</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown response_type type </span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="n">response_type</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">coefs</span></div>
 </pre></div>
