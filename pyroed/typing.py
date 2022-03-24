@@ -33,9 +33,6 @@ def validate(
     """
     from .constraints import Constraint  # avoid import cycle
 
-    if config is None:
-        config = {}
-
     # Validate schema.
     assert isinstance(schema, OrderedDict)
     for name, values in schema.items():
@@ -99,10 +96,12 @@ def validate(
             assert response.shape == sequences.shape[:1]
             assert -math.inf < response.min()
             assert response.max() < math.inf
-            if config.get("response_type") == "unit_interval":
-                message = (
-                    "response outside of unit interval, "
-                    'consider setting response_type="real"'
-                )
-                assert 0 <= response.min(), message
-                assert response.max() <= 1, message
+            if config is not None:
+                response_type = config.get("response_type", "unit_interval")
+                if response_type == "unit_interval":
+                    message = (
+                        "response outside of unit interval, "
+                        'consider configuring response_type="real"'
+                    )
+                    assert 0 <= response.min(), message
+                    assert response.max() <= 1, message

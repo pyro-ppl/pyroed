@@ -13,7 +13,7 @@ def fit_svi(
     *,
     lr: float = 0.01,
     num_steps: int = 201,
-    jit_compile: Optional[bool] = False,
+    jit_compile: Optional[bool] = None,
     log_every: int = 100,
     plot: bool = False,
 ) -> Callable[[], Dict[str, torch.Tensor]]:
@@ -55,7 +55,7 @@ def fit_mcmc(
     num_samples: int = 500,
     warmup_steps: int = 500,
     num_chains: int = 1,
-    jit_compile: Optional[bool] = True,
+    jit_compile: Optional[bool] = None,
 ) -> Callable[[], Dict[str, torch.Tensor]]:
     """
     Fits a model via Hamiltonian Monte Carlo.

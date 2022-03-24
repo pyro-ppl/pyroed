@@ -41,6 +41,8 @@ def thompson_sample(
     :param dict experiment: A dict containing all old experiment data.
     :param int design_size: Number of designs to try to return (sometimes
         fewer designs are found).
+    :param str response_type: Type of response, one of: "real", "unit_interval".
+    :param str inference: Inference algorithm, one of: "svi", "mcmc".
     :returns: A design as a set of tuples of choices.
     :rtype: set
     """
