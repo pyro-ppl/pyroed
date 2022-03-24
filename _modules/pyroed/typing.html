@@ -103,9 +103,6 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="kn">from</span> <span class="nn">.constraints</span> <span class="kn">import</span> <span class="n">Constraint</span>  <span class="c1"># avoid import cycle</span>
 
-    <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">config</span> <span class="o">=</span> <span class="p">{}</span>
-
     <span class="c1"># Validate schema.</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">OrderedDict</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -169,13 +166,15 @@
             <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">sequences</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span>
             <span class="k">assert</span> <span class="o">-</span><span class="n">math</span><span class="o">.</span><span class="n">inf</span> <span class="o">&lt;</span> <span class="n">response</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
             <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">math</span><span class="o">.</span><span class="n">inf</span>
-            <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;response_type&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;unit_interval&quot;</span><span class="p">:</span>
-                <span class="n">message</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="s2">&quot;response outside of unit interval, &quot;</span>
-                    <span class="s1">&#39;consider setting response_type=&quot;real&quot;&#39;</span>
-                <span class="p">)</span>
-                <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">response</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">message</span>
-                <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">message</span></div>
+            <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">response_type</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;response_type&quot;</span><span class="p">,</span> <span class="s2">&quot;unit_interval&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">response_type</span> <span class="o">==</span> <span class="s2">&quot;unit_interval&quot;</span><span class="p">:</span>
+                    <span class="n">message</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="s2">&quot;response outside of unit interval, &quot;</span>
+                        <span class="s1">&#39;consider configuring response_type=&quot;real&quot;&#39;</span>
+                    <span class="p">)</span>
+                    <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">response</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">message</span>
+                    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">message</span></div>
 </pre></div>
 
            </div>
