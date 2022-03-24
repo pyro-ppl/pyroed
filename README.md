@@ -44,6 +44,7 @@ SCHEMA["nuc1"] = ["A", "C", "G", "T"]  # you can make each list different
 SCHEMA["nuc2"] = ["A", "C", "G", "T"]
 SCHEMA["nuc3"] = ["A", "C", "G", "T"]
 SCHEMA["nuc4"] = ["A", "C", "G", "T"]
+SCHEMA["nuc5"] = ["A", "C", "G", "T"]
 
 # Declare some constraints. See pyroed.constraints for options.
 CONSTRAINTS = []
@@ -78,6 +79,7 @@ GIBBS_BLOCKS.append(["nuc4", "nuc5"])
 An experiment consists of a set of `sequences` and the experimentally measured
 `responses` of those sequences.
 ```python
+# Enter your existing data.
 sequences = ["ACGAAA", "ACGATT", "AGTTTT"]
 responses = torch.tensor([0.1, 0.2, 0.6])
 
