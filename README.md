@@ -39,8 +39,8 @@ For example to optimize a nucleotide sequence of length 6:
 ```python
 # Declare the set of choices and the values each choice can take.
 SCHEMA = OrderedDict()
-SCHEMA["nuc0"] = ["A", "C", "G", "T"]
-SCHEMA["nuc1"] = ["A", "C", "G", "T"] 
+SCHEMA["nuc0"] = ["A", "C", "G", "T"]  # these are the same, but
+SCHEMA["nuc1"] = ["A", "C", "G", "T"]  # you can make each list different
 SCHEMA["nuc2"] = ["A", "C", "G", "T"]
 SCHEMA["nuc3"] = ["A", "C", "G", "T"]
 SCHEMA["nuc4"] = ["A", "C", "G", "T"]
@@ -66,11 +66,11 @@ FEATURE_BLOCKS.append(["nuc4", "nuc5"])
 
 # Finally define Gibbs sampling blocks for the discrete optimization.
 GIBBS_BLOCKS = []
-bIBBS_BLOCKS.append(["nuc0", "nuc1"])  # consecutive pairs
-bIBBS_BLOCKS.append(["nuc1", "nuc2"])
-bIBBS_BLOCKS.append(["nuc2", "nuc3"])
-bIBBS_BLOCKS.append(["nuc3", "nuc4"])
-bIBBS_BLOCKS.append(["nuc4", "nuc5"])
+GIBBS_BLOCKS.append(["nuc0", "nuc1"])  # consecutive pairs
+GIBBS_BLOCKS.append(["nuc1", "nuc2"])
+GIBBS_BLOCKS.append(["nuc2", "nuc3"])
+GIBBS_BLOCKS.append(["nuc3", "nuc4"])
+GIBBS_BLOCKS.append(["nuc4", "nuc5"])
 ```
 
 ### 2. Declare your initial experiment
