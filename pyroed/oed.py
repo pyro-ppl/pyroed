@@ -1,5 +1,5 @@
 import warnings
-from typing import Dict, Set, Tuple
+from typing import Dict, Optional, Set, Tuple
 
 import pyro.poutine as poutine
 import torch
@@ -17,17 +17,18 @@ def thompson_sample(
     gibbs_blocks: Blocks,
     experiment: Dict[str, torch.Tensor],
     *,
-    design_size=10,
-    inference="svi",
-    mcmc_num_samples=500,
-    mcmc_warmup_steps=500,
-    mcmc_num_chains=1,
-    svi_num_steps=201,
-    sa_num_steps=1000,
-    max_tries=1000,
-    thompson_temperature=1.0,
-    jit_compile=None,
-    log_every=100,
+    design_size: int = 10,
+    response_type: str = "unit_interval",
+    inference: str = "svi",
+    mcmc_num_samples: int = 500,
+    mcmc_warmup_steps: int = 500,
+    mcmc_num_chains: int = 1,
+    svi_num_steps: int = 201,
+    sa_num_steps: int = 1000,
+    max_tries: int = 1000,
+    thompson_temperature: float = 1.0,
+    jit_compile: Optional[bool] = None,
+    log_every: int = 100,
 ) -> Set[Tuple[int, ...]]:
     """
     This trains a guide (i.e. do variational inference), draws thompson
@@ -48,7 +49,13 @@ def thompson_sample(
 
     @poutine.scale(scale=1 / thompson_temperature)
     def hot_model():
-        return model(schema, feature_blocks, experiment, max_batch_id=max_batch_id)
+        return model(
+            schema,
+            feature_blocks,
+            experiment,
+            max_batch_id=max_batch_id,
+            response_type=response_type,
+        )
 
     # Fit a posterior distribution over parameters given experiment data.
     with warnings.catch_warnings():
@@ -58,8 +65,6 @@ def thompson_sample(
             torch.jit.TracerWarning,
         )
         if inference == "svi":
-            if jit_compile is None:
-                jit_compile = True  # default to False to avoid jit error
             sampler = fit_svi(
                 hot_model,
                 num_steps=svi_num_steps,
@@ -68,8 +73,6 @@ def thompson_sample(
                 log_every=log_every,
             )
         elif inference == "mcmc":
-            if jit_compile is None:
-                jit_compile = True  # default to True for speed
             sampler = fit_mcmc(
                 hot_model,
                 num_samples=mcmc_num_samples,
@@ -82,7 +85,7 @@ def thompson_sample(
 
     # Repeatedly sample coefficients from the posterior,
     # and for each sample find an optimal sequence.
-    with torch.no_grad():
+    with torch.no_grad(), poutine.mask(mask=False):
         logits = experiment["responses"].clamp(min=0.001, max=0.999).logit()
         extent = logits.max() - logits.min()
         temperature_schedule = extent * torch.logspace(0.0, -2.0, sa_num_steps)
@@ -93,8 +96,7 @@ def thompson_sample(
         for i in range(max_tries):
             if log_every:
                 print(".", end="", flush=True)
-            with poutine.condition(data=sampler()):
-                coefs = model(schema, feature_blocks, experiment)
+            coefs = poutine.condition(hot_model, sampler())()
 
             seq = optimize_simulated_annealing(
                 schema,

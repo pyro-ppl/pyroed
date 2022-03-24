@@ -32,8 +32,9 @@ def linear_response(
 
     result = torch.tensor(0.0)
     for key, coef in coefs.items():
-        assert isinstance(key, tuple)
-        assert coef.dim() == len(key)
+        if not torch._C._get_tracing_state():
+            assert isinstance(key, tuple)
+            assert coef.dim() == len(key)
         index = tuple(choices[name] for name in key)
         result = result + coef[index]
 
@@ -46,7 +47,8 @@ def model(
     experiment: Dict[str, torch.Tensor],  # sequences, batch_id, optional(response)
     *,
     max_batch_id: Optional[int] = None,
-    quantization_bins=100,
+    response_type: str = "unit_interval",
+    quantization_bins: int = 100,
 ):
     """
     A `Pyro <https://pyro.ai>`_ model for Bayesian linear regression.
@@ -54,8 +56,9 @@ def model(
     :param OrderedDict schema: A schema dict.
     :param list feature_blocks: A list of choice blocks for linear regression.
     :param dict experiment: A dict containing all old experiment data.
+    :param str response_type: Type of response, one of: "real", "unit_interval".
     :param int quantization_bins: Number of bins in which to quantize the
-        response likelihood.
+        "unit_interval" response response_type.
     :returns: A dictionary mapping feature tuples to coefficient tensors.
     :rtype: dict
     """
@@ -91,10 +94,9 @@ def model(
     response_loc = linear_response(schema, coefs, experiment["sequences"])
 
     # Observe a noisy response.
-    # This likelihood could be generalized to counts or whatever.
     within_batch_scale = pyro.sample("within_batch_scale", dist.LogNormal(0, 1))
     if B == 1:
-        batch_response = torch.zeros(B)
+        within_batch_loc = response_loc
     else:
         # Model batch effects.
         across_batch_scale = pyro.sample("across_batch_scale", dist.LogNormal(0, 1))
@@ -104,26 +106,38 @@ def model(
             )
             if not torch._C._get_tracing_state():
                 assert batch_response.shape == (B,)
-    with pyro.plate("data", N):
-        logits = pyro.sample(
-            "logits",
-            dist.Normal(
-                response_loc + batch_response[experiment["batch_ids"]],
-                within_batch_scale,
-            ),
-        )
+        within_batch_loc = response_loc + batch_response[experiment["batch_ids"]]
 
-        # Quantize the observation to avoid numerical artifacts near 0 and 1.
-        quantized_obs = None
-        response = experiment.get("responses")
-        if response is not None:  # during inference
-            quantized_obs = (response * quantization_bins).round()
-        quantized_obs = pyro.sample(
-            "quantized_response",
-            dist.Binomial(quantization_bins, logits=logits),
-            obs=quantized_obs,
-        )
-        if response is None:  # during simulation
-            pyro.deterministic("responses", quantized_obs / quantization_bins)
+    # This likelihood can be generalized to counts or other datatype.
+    with pyro.plate("data", N):
+        if response_type == "real":
+            pyro.sample(
+                "responses",
+                dist.Normal(within_batch_loc, within_batch_scale),
+                obs=experiment.get("responses"),
+            )
+
+        elif response_type == "unit_interval":
+            logits = pyro.sample(
+                "logits",
+                dist.Normal(within_batch_loc, within_batch_scale),
+            )
+
+            # Quantize the observation to avoid numerical artifacts near 0 and 1.
+            quantized_obs = None
+            response = experiment.get("responses")
+            if response is not None:  # during inference
+                quantized_obs = (response * quantization_bins).round()
+            quantized_obs = pyro.sample(
+                "quantized_response",
+                dist.Binomial(quantization_bins, logits=logits),
+                obs=quantized_obs,
+            )
+            assert quantized_obs is not None
+            if response is None:  # during simulation
+                pyro.deterministic("responses", quantized_obs / quantization_bins)
+
+        else:
+            raise ValueError(f"Unknown response_type type {repr(response_type)}")
 
     return coefs

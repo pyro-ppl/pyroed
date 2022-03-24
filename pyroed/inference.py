@@ -1,4 +1,4 @@
-from typing import Callable, Dict
+from typing import Callable, Dict, Optional
 
 import pyro
 import torch
@@ -11,11 +11,11 @@ from pyro.optim import ClippedAdam
 def fit_svi(
     model: Callable,
     *,
-    lr=0.01,
-    num_steps=201,
-    jit_compile=False,
-    log_every=100,
-    plot=False,
+    lr: float = 0.01,
+    num_steps: int = 201,
+    jit_compile: Optional[bool] = False,
+    log_every: int = 100,
+    plot: bool = False,
 ) -> Callable[[], Dict[str, torch.Tensor]]:
     """
     Fits a model via stochastic variational inference.
@@ -24,6 +24,9 @@ def fit_svi(
     :returns: A variational distribution that can generate samples.
     :rtype: callable
     """
+    if jit_compile is None:
+        jit_compile = False  # default to False to avoid jit error
+
     pyro.clear_param_store()
     guide: Callable[[], Dict[str, torch.Tensor]] = AutoLowRankMultivariateNormal(model)
     optim = ClippedAdam({"lr": lr, "lrd": 0.1 ** (1 / num_steps)})
@@ -49,10 +52,10 @@ def fit_svi(
 def fit_mcmc(
     model: Callable,
     *,
-    num_samples=500,
-    warmup_steps=500,
-    num_chains=1,
-    jit_compile=True,
+    num_samples: int = 500,
+    warmup_steps: int = 500,
+    num_chains: int = 1,
+    jit_compile: Optional[bool] = True,
 ) -> Callable[[], Dict[str, torch.Tensor]]:
     """
     Fits a model via Hamiltonian Monte Carlo.
@@ -61,6 +64,9 @@ def fit_mcmc(
     :returns: A sampler that draws from the empirical distribution.
     :rtype: Sampler
     """
+    if jit_compile is None:
+        jit_compile = True  # default to True for speed
+
     kernel = NUTS(model, jit_compile=jit_compile)
     mcmc = MCMC(
         kernel,

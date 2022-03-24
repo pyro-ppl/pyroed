@@ -1,5 +1,5 @@
 import warnings
-from typing import Dict
+from typing import Dict, Optional
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -22,14 +22,15 @@ def criticize(
     experiment: Dict[str, torch.Tensor],
     test_data: Dict[str, torch.Tensor],
     *,
-    inference="svi",
-    num_posterior_samples=11,
-    mcmc_num_samples=500,
-    mcmc_warmup_steps=500,
-    mcmc_num_chains=1,
-    svi_num_steps=201,
-    jit_compile=True,
-    log_every=100,
+    response_type: str = "unit_interval",
+    inference: str = "svi",
+    num_posterior_samples: int = 11,
+    mcmc_num_samples: int = 500,
+    mcmc_warmup_steps: int = 500,
+    mcmc_num_chains: int = 1,
+    svi_num_steps: int = 201,
+    jit_compile: Optional[bool] = None,
+    log_every: int = 100,
 ) -> None:
     """
     Plots observed versus predicted responses on a held out test set.
@@ -42,8 +43,13 @@ def criticize(
     :param dict test_data: A dict containing held out test data.
     """
 
-    def tf8_model():
-        return model(schema, feature_blocks, experiment)
+    def bound_model():
+        return model(
+            schema,
+            feature_blocks,
+            experiment,
+            response_type=response_type,
+        )
 
     # Fit a posterior distribution over parameters given experiment data.
     with warnings.catch_warnings():
@@ -54,14 +60,14 @@ def criticize(
         )
         if inference == "svi":
             sampler = fit_svi(
-                tf8_model,
+                bound_model,
                 num_steps=svi_num_steps,
                 jit_compile=jit_compile,
                 plot=False,
             )
         elif inference == "mcmc":
             sampler = fit_mcmc(
-                tf8_model,
+                bound_model,
                 num_samples=mcmc_num_samples,
                 warmup_steps=mcmc_warmup_steps,
                 num_chains=mcmc_num_chains,
@@ -79,12 +85,9 @@ def criticize(
 
         predictions = []
         for _ in range(num_posterior_samples):
-            with poutine.condition(data=sampler()):
-                coefs = model(schema, feature_blocks, experiment)
-                test_prediction = linear_response(
-                    schema, coefs, test_sequences
-                ).sigmoid()
-                predictions.append(test_prediction)
+            coefs = poutine.condition(bound_model, sampler())()
+            test_prediction = linear_response(schema, coefs, test_sequences).sigmoid()
+            predictions.append(test_prediction)
 
         test_predictions = torch.stack(predictions).detach().cpu().numpy()
         mean_predictions = test_predictions.mean(0)

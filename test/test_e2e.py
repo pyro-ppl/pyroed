@@ -15,6 +15,7 @@ from pyroed.constraints import AllDifferent
 from pyroed.typing import Constraints, Schema
 
 
+@pytest.mark.parametrize("response_type", ["unit_interval", "real"])
 @pytest.mark.parametrize(
     "inference, jit_compile",
     [
@@ -24,7 +25,7 @@ from pyroed.typing import Constraints, Schema
         ("mcmc", True),
     ],
 )
-def test_end_to_end(inference, jit_compile):
+def test_end_to_end(inference, jit_compile, response_type):
     SCHEMA: Schema = OrderedDict()
     SCHEMA["foo"] = ["a", "b", None]
     SCHEMA["bar"] = ["a", "b", "c", None]
@@ -50,6 +51,7 @@ def test_end_to_end(inference, jit_compile):
     experiment = start_experiment(SCHEMA, sequences, responses, batch_ids)
 
     config = {
+        "response_type": response_type,
         "inference": inference,
         "jit_compile": jit_compile,
         "mcmc_num_samples": 100,
