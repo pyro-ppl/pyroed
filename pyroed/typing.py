@@ -1,5 +1,6 @@
+import math
 from collections import OrderedDict
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
 
@@ -17,6 +18,7 @@ def validate(
     feature_blocks: Optional[Blocks] = None,
     gibbs_blocks: Optional[Blocks] = None,
     experiment: Optional[Dict[str, torch.Tensor]] = None,
+    config: Optional[Dict[str, Any]] = None,
 ) -> None:
     """
     Validates a Pyroed problem specification.
@@ -30,6 +32,9 @@ def validate(
     :param dict experiment: An optional dict containing all old experiment data.
     """
     from .constraints import Constraint  # avoid import cycle
+
+    if config is None:
+        config = {}
 
     # Validate schema.
     assert isinstance(schema, OrderedDict)
@@ -92,5 +97,12 @@ def validate(
             assert isinstance(response, torch.Tensor)
             assert torch.is_floating_point(response)
             assert response.shape == sequences.shape[:1]
-            assert 0 <= response.min()
-            assert response.max() <= 1
+            assert -math.inf < response.min()
+            assert response.max() < math.inf
+            if config.get("response_type") == "unit_interval":
+                message = (
+                    "response outside of unit interval, "
+                    'consider setting response_type="real"'
+                )
+                assert 0 <= response.min(), message
+                assert response.max() <= 1, message

@@ -135,6 +135,7 @@ def get_next_design(
             feature_blocks=feature_blocks,
             gibbs_blocks=gibbs_blocks,
             experiment=experiment,
+            config=config,
         )
 
     # Perform OED via Thompson sampling.

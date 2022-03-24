@@ -46,7 +46,10 @@ def test_end_to_end(inference, jit_compile, response_type):
     ]
 
     sequences = encode_design(SCHEMA, design)
-    responses = torch.rand(design_size)
+    if response_type == "unit_interval":
+        responses = torch.rand(design_size)
+    elif response_type == "real":
+        responses = torch.randn(design_size)
     batch_ids = torch.zeros(design_size, dtype=torch.long)
     experiment = start_experiment(SCHEMA, sequences, responses, batch_ids)
 
