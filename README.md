@@ -35,25 +35,42 @@ pip install -e .
 ### 1. Specify your problem in the Pyroed language
 
 First specify your sequence space by declaring a `SCHEMA`, `CONSTRAINTS`, `FEATURE_BLOCKS`, and `GIBBS_BLOCKS`. These are all simple Python data structures.
-For example to optimize a nucleotide sequence of length 10:
+For example to optimize a nucleotide sequence of length 6:
 ```python
 # Declare the set of choices and the values each choice can take.
 SCHEMA = OrderedDict()
-for i in range(10):
-    SCHEMA[f"nuc{i}"] = ["A", "C", "G", "T"]
+SCHEMA["nuc0"] = ["A", "C", "G", "T"]
+SCHEMA["nuc1"] = ["A", "C", "G", "T"] 
+SCHEMA["nuc2"] = ["A", "C", "G", "T"]
+SCHEMA["nuc3"] = ["A", "C", "G", "T"]
+SCHEMA["nuc4"] = ["A", "C", "G", "T"]
 
 # Declare some constraints. See pyroed.constraints for options.
-CONSTRAINTS = [AllDifferent("nuc0", "nuc1", "nuc2"),
-               Iff(TakesValue("nuc8", "T"), TakesValue("nuc9", "T"))]
+CONSTRAINTS = []
+CONSTRAINTS.append(AllDifferent("nuc0", "nuc1", "nuc2"))
+CONSTRAINTS.append(Iff(TakesValue("nuc4", "T"), TakesValue("nuc5", "T")))
 
-# Specify that the Bayesian linear regression model incorporates coefficients for 
-# each nucleotide and for each consecutive pair of nucleotides.
-single_blocks = list(SCHEMA)
-pair_blocks = [[a, b] for a, b in zip(single_blocks[:-1], single_blocks[1:])]
-FEATURE_BLOCKS = single_blocks + pair_blocks
+# Specify groups of cross features for the Bayesian linear regression model.
+FEATURE_BLOCKS = []
+FEATURE_BLOCKS.append(["nuc0"])  # single features
+FEATURE_BLOCKS.append(["nuc1"])
+FEATURE_BLOCKS.append(["nuc2"])
+FEATURE_BLOCKS.append(["nuc3"])
+FEATURE_BLOCKS.append(["nuc4"])
+FEATURE_BLOCKS.append(["nuc5"])
+FEATURE_BLOCKS.append(["nuc0", "nuc1"])  # consecutive pairs
+FEATURE_BLOCKS.append(["nuc1", "nuc2"])
+FEATURE_BLOCKS.append(["nuc2", "nuc3"])
+FEATURE_BLOCKS.append(["nuc3", "nuc4"])
+FEATURE_BLOCKS.append(["nuc4", "nuc5"])
 
 # Finally define Gibbs sampling blocks for the discrete optimization.
-GIBBS_BLOCKS = pair_blocks
+GIBBS_BLOCKS = []
+bIBBS_BLOCKS.append(["nuc0", "nuc1"])  # consecutive pairs
+bIBBS_BLOCKS.append(["nuc1", "nuc2"])
+bIBBS_BLOCKS.append(["nuc2", "nuc3"])
+bIBBS_BLOCKS.append(["nuc3", "nuc4"])
+bIBBS_BLOCKS.append(["nuc4", "nuc5"])
 ```
 
 ### 2. Declare your initial experiment
@@ -61,7 +78,7 @@ GIBBS_BLOCKS = pair_blocks
 An experiment consists of a set of `sequences` and the experimentally measured
 `responses` of those sequences.
 ```python
-sequences = ["ACGAAAAAAA", "ACGAAAAATT", "AGTTTTTTTT"]
+sequences = ["ACGAAA", "ACGATT", "AGTTTT"]
 responses = torch.tensor([0.1, 0.2, 0.6])
 
 # Collect these into a dictionary that we'll maintain throughout our workflow.
@@ -80,7 +97,7 @@ design = pyroed.get_next_design(
 )
 new_seqences = ["".join(s) for s in pyroed.decode_design(SCHEMA, design)]
 print(new_sequences)
-# ["CAGTTGTTGC", "GCACTCAGTT", "TAGCGTTGTT"]
+# ["CAGTGC", "GCAGTT", "TAGGTT"]
 ```
 Then we'll go to the lab, measure the responses of these new sequences, and
 append the new results to our experiment:
