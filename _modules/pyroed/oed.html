@@ -97,6 +97,7 @@
     <span class="n">mcmc_warmup_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span><span class="p">,</span>
     <span class="n">mcmc_num_chains</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="n">svi_num_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">201</span><span class="p">,</span>
+    <span class="n">svi_reparam</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">sa_num_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
     <span class="n">max_tries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
     <span class="n">thompson_temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
@@ -135,6 +136,8 @@
 <span class="sd">        as ``mcmc_num_samples``.</span>
 <span class="sd">    :param int svi_num_steps: If ``inference == &quot;svi&quot;`` this sets the number of</span>
 <span class="sd">        steps to run stochastic variational inference.</span>
+<span class="sd">    :param bool svi_reparam: Whether to reparametrize SVI inference.</span>
+<span class="sd">        This only works when ``thompson_temperature == 1``.</span>
 <span class="sd">    :param int sa_num_steps: Number of steps to run simulated annealing, at</span>
 <span class="sd">        each Thompson sample.</span>
 <span class="sd">    :param int max_tries: Number of extra Thompson samples to draw in search</span>
@@ -181,9 +184,9 @@
     <span class="k">assert</span> <span class="n">thompson_temperature</span> <span class="o">&gt;</span> <span class="mi">0</span>
     <span class="k">if</span> <span class="n">thompson_temperature</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">bound_model</span> <span class="o">=</span> <span class="n">poutine</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">bound_model</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">thompson_temperature</span><span class="p">)</span>
-    <span class="c1"># Reparametrization improves variational inference, but doesn&#39;t work with</span>
-    <span class="c1"># poutine.scale, jit compilation, or mcmc.</span>
-    <span class="k">if</span> <span class="n">thompson_temperature</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">jit_compile</span> <span class="ow">and</span> <span class="n">inference</span> <span class="o">==</span> <span class="s2">&quot;svi&quot;</span><span class="p">:</span>
+    <span class="c1"># Reparametrization can improve variational inference, but doesn&#39;t work</span>
+    <span class="c1"># with poutine.scale, jit compilation, or mcmc.</span>
+    <span class="k">if</span> <span class="n">inference</span> <span class="o">==</span> <span class="s2">&quot;svi&quot;</span> <span class="ow">and</span> <span class="n">svi_reparam</span> <span class="ow">and</span> <span class="n">thompson_temperature</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">bound_model</span> <span class="o">=</span> <span class="n">AutoReparam</span><span class="p">()(</span><span class="n">bound_model</span><span class="p">)</span>
         <span class="n">poutine</span><span class="o">.</span><span class="n">block</span><span class="p">(</span><span class="n">bound_model</span><span class="p">)()</span>  <span class="c1"># initialize reparam</span>
 
