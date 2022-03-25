@@ -1,3 +1,20 @@
+"""
+This module implements a declarative langauge of constraints on sequence
+values. The language consists of:
+
+- Atomic constraints :class:`TakesValue`, :class:`TakesValues`, and
+  :class:`AllDifferent`
+- Logical operations :class:`Not`, :class:`And`, :class:`Or`, :class:`Xor`,
+  :class:`IfThen`, and :class:`Iff`.
+
+Examples in this file will reference the following ``SCHEMA``::
+
+    SCHEMA = OrderedDict()
+    SCHEMA["aa1"] = ["P", "L", None]
+    SCHEMA["aa2"] = ["N", "Y",  "T", None]
+    SCHEMA["aa3"] = ["R", "S"]
+"""
+
 from abc import ABC, abstractmethod
 from typing import Dict, Optional
 
@@ -8,7 +25,9 @@ from .typing import Schema
 
 class Constraint(ABC):
     """
-    Abstract base class for constraints
+    Abstract base class for constraints.
+
+    Derived classes must implement the :meth:`__call__` method.
     """
 
     @abstractmethod
@@ -19,6 +38,10 @@ class Constraint(ABC):
 class TakesValue(Constraint):
     """
     Constrains a site to take a fixed value.
+
+    Example::
+
+        CONSTRAINTS.append(TakesValue("aa1", "P"))
 
     :param str name: Name of a sequence variable in the schema.
     :param value: The value that the variable can take.
@@ -50,6 +73,10 @@ class TakesValue(Constraint):
 class TakesValues(Constraint):
     r"""
     Constrains a site to take one of a set of values.
+
+    Example::
+
+        CONSTRAINTS.append(TakesValue("aa1", "P", "L"))
 
     :param str name: Name of a sequence variable in the schema.
     :param \*values: Values that the variable can take.
@@ -91,6 +118,10 @@ class TakesValues(Constraint):
 class AllDifferent(Constraint):
     r"""
     Constrains a set of sites to all have distinct values.
+
+    Example::
+
+        CONSTRAINTS.append(AllDifferent("aa1", "aa2", "aa3"))
 
     :param str \*names: Names of sequence variables that should be distinct.
     """
@@ -136,6 +167,10 @@ class Not(Constraint):
     """
     Negates a constraints.
 
+    Example::
+
+        CONSTRAINTS.append(Not(TakesValue("aa1", "P")))
+
     :param Constraint arg: A constraint.
     """
 
@@ -154,6 +189,10 @@ class Not(Constraint):
 class And(Constraint):
     """
     Conjoins two constraints.
+
+    Example::
+
+        CONSTRAINTS.append(And(TakesValue("aa1", None), TakesValue("aa2", None)))
 
     :param Constraint lhs: A constraint.
     :param Constraint rhs: A constraint.
@@ -177,6 +216,10 @@ class Or(Constraint):
     """
     Disjoins two constraints.
 
+    Example::
+
+        CONSTRAINTS.append(Or(TakesValue("aa1", None), TakesValue("aa2", None)))
+
     :param Constraint lhs: A constraint.
     :param Constraint rhs: A constraint.
     """
@@ -198,6 +241,10 @@ class Or(Constraint):
 class Xor(Constraint):
     """
     Exclusive or among constraints. Equivalent to ``Not(Iff(lhs, rhs))``.
+
+    Example::
+
+        CONSTRAINTS.append(Xor(TakesValue("aa1", None), TakesValue("aa2", None)))
 
     :param Constraint lhs: A constraint.
     :param Constraint rhs: A constraint.
@@ -221,6 +268,10 @@ class IfThen(Constraint):
     """
     Conditional between constraints.
 
+    Example::
+
+        CONSTRAINTS.append(IfThen(TakesValue("aa1", None), TakesValue("aa2", None)))
+
     :param Constraint lhs: A constraint.
     :param Constraint rhs: A constraint.
     """
@@ -242,6 +293,10 @@ class IfThen(Constraint):
 class Iff(Constraint):
     """
     Equality among constraints.
+
+    Exmaple::
+
+        CONSTRAINTS.append(Iff(TakesValue("aa1", None), TakesValue("aa2", None)))
 
     :param Constraint lhs: A constraint.
     :param Constraint rhs: A constraint.

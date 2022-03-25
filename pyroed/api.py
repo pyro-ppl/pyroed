@@ -1,3 +1,42 @@
+"""
+Pyroed's high-level interface includes a design language and a set of
+functions to operate on Python data structures.
+
+The **design language** allows you to specify a problem by defining a
+``SCHEMA``, a list ``CONSTRAINTS`` of :class:`~pyroed.constraints.Constraint`
+objects, a list ``FEATURE_BLOCKS`` defining cross features, and a list
+``GIBBS_BLOCKS`` defining groups of features that are related to each other.
+The examples in this module will use the following model specification::
+
+    SCHEMA = OrderedDict()
+    SCHEMA["aa1"] = ["P", "L", None]
+    SCHEMA["aa2"] = ["N", "Y",  "T", None]
+    SCHEMA["aa3"] = ["R", "S"]
+
+    CONSTRAINTS = [Not(And(TakesValue("aa1", None), TakesValue("aa2", None)))]
+
+    FEATURE_BLOCKS = [["aa1"], ["aa2"], ["aa3"], ["aa1", "aa2"], ["aa2", "aa3"]]
+
+    GIBBS_BLOCKS = [["aa1", "aa2"], ["aa2", "aa3"]]
+
+After declaring the design space, we can progressively gather data into an
+``experiment`` dict by using the functions in this module and by experimentally
+measuring sequences.
+
+- :func:`encode_design` and :func:`decode_design` convert between
+  text-representations of designs like ``[["P", "N", "R"], ["P", "N", "S"]]``
+  and PyTorch representations of designs like
+  ``torch.tensor([[0, 0, 0], [0, 0, 1]])``.
+- :func:`start_experiment` initializes an experiment dict,
+- :func:`get_next_design` suggests a next set of sequences to test, and
+- :func:`update_experiment` updates an experiment dict with measured responses.
+
+Note that :func:`get_next_design` is merely an algorithmic suggestion, you can
+ignore the suggestion or measure a different set of sequences if you want. For
+example if some of your measurements are lost due to technical reasons, you can
+simply pass a subset of your design to :func:`update_experiment`.
+"""
+
 from collections import OrderedDict
 from typing import Callable, Dict, Iterable, List, Optional
 
@@ -12,6 +51,23 @@ def encode_design(
 ) -> torch.Tensor:
     """
     Converts a human readable list of sequences into a tensor.
+
+    Example::
+
+        SCHEMA = OrderedDict()
+        SCHEMA["aa1"] = ["P", "L", None]
+        SCHEMA["aa2"] = ["N", "Y",  "T", None]
+        SCHEMA["aa3"] = ["R", "S"]
+
+        design = [
+            ["P", "N", "R"],
+            ["P", "N", "S"],
+            [None, "N", "R"],
+            ["P", None, "R"],
+        ]
+        sequences = encode_design(SCHEMA, design)
+        print(sequences)
+        # torch.tensor([[0, 0, 0], [0, 0, 1], [2, 0, 0], [0, 3, 0]])
 
     :param OrderedDict schema: A schema dict.
     :param list design: A list of list of choices (strings or None).
@@ -43,6 +99,18 @@ def decode_design(schema: Schema, sequences: torch.Tensor) -> List[List[Optional
     """
     Converts an tensor representation of a design into a readable list of designs.
 
+    Example::
+
+        SCHEMA = OrderedDict()
+        SCHEMA["aa1"] = ["P", "L", None]
+        SCHEMA["aa2"] = ["N", "Y",  "T", None]
+        SCHEMA["aa3"] = ["R", "S"]
+
+        sequences = torch.tensor([[0, 0, 0], [0, 0, 1], [2, 0, 0]])
+        design = decode_design(SCHEMA, sequences)
+        print(design)
+        # [["P", "N", "R"], ["P", "N", "S"], [None, "N", "R"]]
+
     :param OrderedDict schema: A schema dict.
     :param torch.Tensor sequences: A tensor of encoded sequences.
     :returns: A list of list of choices (strings or None).
@@ -70,6 +138,18 @@ def start_experiment(
 ) -> Dict[str, torch.Tensor]:
     """
     Creates a cumulative experiment with initial data.
+
+    Example::
+
+        SCHEMA = OrderedDict()
+        SCHEMA["aa1"] = ["P", "L", None]
+        SCHEMA["aa2"] = ["N", "Y",  "T", None]
+        SCHEMA["aa3"] = ["R", "S"]
+
+        sequences = torch.tensor([[0, 0, 0], [0, 0, 1], [2, 0, 0]])
+        responses = torch.tensor([0.1, 0.4, 0.5])
+
+        experiment = start_experiment(SCHEMA, sequences, responses)
 
     :param OrderedDict schema: A schema dict.
     :param torch.Tensor sequences: A tensor of encoded sequences that have been
@@ -110,8 +190,43 @@ def get_next_design(
     """
     Generate a new design given cumulative experimental data.
 
+    Under the hood this runs :func:`~pyroed.oed.thompson_sample`, which
+    performs Bayesian inference via either variational inference
+    :func:`~pyroed.inference.fit_svi` or MCMC
+    :func:`~pyroed.inference.fit_mcmc` and performs optimization via
+    :func:`~pyroed.optimizers.optimize_simulated_annealing`. These algorithms
+    can be tuned through the ``config`` dict.
+
+    Example::
+
+        # Initialize experiment.
+        sequences = encode_design(SCHEMA, [
+            ["P", "N", "R"],
+            ["P", "N", "S"],
+            [None, "N", "R"],
+            ["P", None, "R"],
+        ])
+        print(sequences)
+        # torch.tensor([[0, 0, 0], [0, 0, 1], [2, 0, 0], [0, 3, 0]])
+        experiment = {
+            "sequences": sequences,
+            "responses": torch.tensor([0.1, 0.4, 0.5, 0.2]),
+            "batch_ids": torch.tensor([0, 0, 1, 1]),
+        }
+
+        # Run Bayesian optimization to get the next sequences to measure.
+        new_sequences = get_next_design(
+            SCHEMA, CONSTRAINTS, FEATURE_BLOCKS, GIBBS_BLOCKS,
+            experiment, design_size=2,
+        )
+        print(new_sequences)
+        # torch.tensor([[1, 1, 1], [1, 2, 0]])
+        print(decode_design(SCHEMA, new_sequences))
+        # [["L", "Y", "S"], ["L", T", "R"]]
+
     :param OrderedDict schema: A schema dict.
-    :param list constraints: A list of constraints.
+    :param list constraints: A list of zero or more
+        :class:`~pyroed.constraints.Constraint` objects.
     :param list feature_blocks: A list of choice blocks for linear regression.
     :param list gibbs_blocks: A list of choice blocks for Gibbs sampling.
     :param dict experiment: A dict containing all old experiment data.
@@ -169,7 +284,11 @@ def update_experiment(
     """
     Updates a cumulative experiment by appending new data.
 
-    Note this does not modify its arguments, you must capture the result.
+    Note this does not modify its arguments; you must capture the result::
+
+        experiment = update_experiment(
+            SCHEMA, experiment, new_sequences, new_responses, new_batch_ids
+        )
 
     :param OrderedDict schema: A schema dict.
     :param dict experiment: A dict containing all old experiment data.

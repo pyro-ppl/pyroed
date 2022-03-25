@@ -33,8 +33,17 @@ def thompson_sample(
     log_every: int = 100,
 ) -> Set[Tuple[int, ...]]:
     """
-    This trains a guide (i.e. do variational inference), draws thompson
-    samples, and finds candidate designs via simulated annealing.
+    Performs Bayesian optimization via Thompson sampling.
+
+    This fits a Bayesian model to existing experimental data, and draws
+    Thompson samples wrt that model. To draw each Thompson sample, this first
+    samples parameters from the fitted posterior (annealed by
+    ``thompson_temperature``), then finds an optimal sequenc wrt those
+    parameters via simulated annealing.
+
+    The Bayesian model can be fit either via stochastic variational inference
+    (SVI, faster but less accurate) or Markov chain Monte Carlo (MCMC, slower
+    but more accurate).
 
     :param OrderedDict schema: A schema dict.
     :param list constraints: A list of constraints.
@@ -47,6 +56,27 @@ def thompson_sample(
         features.
     :param str response_type: Type of response, one of: "real", "unit_interval".
     :param str inference: Inference algorithm, one of: "svi", "mcmc".
+    :param int mcmc_num_samples: If ``inference == "mcmc"``, this sets the
+        number of posterior samples to draw from MCMC. Should be larger than
+        ``design_size``.
+    :param int mcmc_warmup_steps: If ``inference == "mcmc", this sets the
+        number of warmup steps for MCMC. Should be the same order of magnitude
+        as ``mcmc_num_samples``.
+    :param int svi_num_steps: If ``inference == "svi"`` this sets the number of
+        steps to run stochastic variational inference.
+    :param int sa_num_steps: Number of steps to run simulated annealing, at
+        each Thompson sample.
+    :param int max_tries: Number of extra Thompson samples to draw in search
+        of novel sequences to add to the design.
+    :param float thompson_temperature: Temperature at which Thompson samples
+        are drawn. Defaults to 1. You may want to increase this if you are have
+        trouble finding novel designs, i.e. if this function returns fewer
+        designs than you request.
+    :param bool jit_compile: Optional flag to force jit compilation during
+        inference. Defaults to safe values for both SVI and MCMC inference.
+    :param int log_every: Logging interval for internal algorithms. To disable
+        logging, set this to zero.
+
     :returns: A design as a set of tuples of choices.
     :rtype: set
     """
@@ -69,6 +99,7 @@ def thompson_sample(
         max_batch_id=max_batch_id,
         response_type=response_type,
     )
+    assert thompson_temperature > 0
     hot_model = poutine.scale(bound_model, 1 / thompson_temperature)
 
     # Fit a posterior distribution over parameters given experiment data.
@@ -87,6 +118,7 @@ def thompson_sample(
                 log_every=log_every,
             )
         elif inference == "mcmc":
+            assert mcmc_num_samples >= design_size
             sampler = fit_mcmc(
                 hot_model,
                 num_samples=mcmc_num_samples,
@@ -107,7 +139,7 @@ def thompson_sample(
         old_design = set(map(tuple, experiment["sequences"].tolist()))
         design: Set[Tuple[int, ...]] = set()
 
-        for i in range(max_tries):
+        for i in range(design_size + max_tries):
             if log_every:
                 print(".", end="", flush=True)
             coefs = poutine.condition(hot_model, sampler())()
