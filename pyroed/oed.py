@@ -4,6 +4,7 @@ from typing import Callable, Dict, Optional, Set, Tuple
 
 import pyro.poutine as poutine
 import torch
+from pyro.infer.reparam import AutoReparam
 
 from .inference import fit_mcmc, fit_svi
 from .models import model
@@ -80,6 +81,14 @@ def thompson_sample(
     :returns: A design as a set of tuples of choices.
     :rtype: set
     """
+    if jit_compile is None:
+        if inference == "svi":
+            jit_compile = False  # default to False to avoid jit errors
+        elif inference == "mcmc":
+            jit_compile = True  # default to True for speed
+        else:
+            raise ValueError(f"Unknown inference type: {inference}")
+
     # Compute extra features.
     extra_features = None
     if feature_fn is not None:
@@ -100,7 +109,13 @@ def thompson_sample(
         response_type=response_type,
     )
     assert thompson_temperature > 0
-    hot_model = poutine.scale(bound_model, 1 / thompson_temperature)
+    if thompson_temperature != 1:
+        bound_model = poutine.scale(bound_model, 1 / thompson_temperature)
+    # Reparametrization improves variational inference, but doesn't work with
+    # poutine.scale, jit compilation, or mcmc.
+    if thompson_temperature == 1 and not jit_compile and inference == "svi":
+        bound_model = AutoReparam()(bound_model)
+        poutine.block(bound_model)()  # initialize reparam
 
     # Fit a posterior distribution over parameters given experiment data.
     with warnings.catch_warnings():
@@ -111,7 +126,7 @@ def thompson_sample(
         )
         if inference == "svi":
             sampler = fit_svi(
-                hot_model,
+                bound_model,
                 num_steps=svi_num_steps,
                 jit_compile=jit_compile,
                 plot=False,
@@ -120,7 +135,7 @@ def thompson_sample(
         elif inference == "mcmc":
             assert mcmc_num_samples >= design_size
             sampler = fit_mcmc(
-                hot_model,
+                bound_model,
                 num_samples=mcmc_num_samples,
                 warmup_steps=mcmc_warmup_steps,
                 num_chains=mcmc_num_chains,
@@ -142,7 +157,7 @@ def thompson_sample(
         for i in range(design_size + max_tries):
             if log_every:
                 print(".", end="", flush=True)
-            coefs = poutine.condition(hot_model, sampler())()
+            coefs = poutine.condition(bound_model, sampler())()
 
             seq = optimize_simulated_annealing(
                 schema,

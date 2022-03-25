@@ -32,7 +32,7 @@ def criticize(
     mcmc_warmup_steps: int = 500,
     mcmc_num_chains: int = 1,
     svi_num_steps: int = 201,
-    jit_compile: Optional[bool] = None,
+    jit_compile: bool = False,
     log_every: int = 100,
     filename: str = "criticize.pdf",
 ) -> None:
