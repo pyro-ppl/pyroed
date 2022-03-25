@@ -122,7 +122,7 @@ def get_next_design(
         (say of shape ``batch_shape``) and return a floating point tensor of of
         shape ``batch_shape + (F,)`` for some number of features ``F``. This
         will be called internally during inference.
-    :param dict config: Optional config. See arguments to
+    :param dict config: Optional config dict. See keyword arguments to
         :func:`~pyroed.oed.thompson_sample` for details.
     :returns: A tensor of encoded new sequences to measure, i.e. a ``design``.
     :rtype: torch.Tensor

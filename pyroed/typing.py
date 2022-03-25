@@ -38,9 +38,12 @@ def validate(
     for name, values in schema.items():
         assert isinstance(name, str)
         assert isinstance(values, list)
+        assert name
         assert values
         for value in values:
-            assert value is None or isinstance(value, str)
+            if value is not None:
+                assert isinstance(value, str)
+                assert value is not None
 
     # Validate constraints.
     if constraints is not None:
@@ -52,6 +55,7 @@ def validate(
     if feature_blocks is not None:
         assert isinstance(feature_blocks, list)
         for block in feature_blocks:
+            assert block, "empty blocks are not allowed"
             assert isinstance(block, list)
             for col in block:
                 assert col in schema
@@ -63,6 +67,7 @@ def validate(
     if gibbs_blocks is not None:
         assert isinstance(gibbs_blocks, list)
         for block in gibbs_blocks:
+            assert block, "empty blocks are not allowed"
             assert isinstance(block, list)
             for col in block:
                 assert col in schema

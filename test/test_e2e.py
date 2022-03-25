@@ -1,9 +1,9 @@
 import os
+import tempfile
 from collections import OrderedDict
 from typing import List, Optional
 
 import pytest
-import tempfile
 import torch
 
 from pyroed import (

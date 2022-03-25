@@ -93,7 +93,8 @@ def model(
     coef_scale_loc = pyro.sample("coef_scale_loc", dist.Normal(-2, 1))
     coef_scale_scale = pyro.sample("coef_scale_scale", dist.LogNormal(0, 1))
     coefs: Coefs = {}
-    for block in feature_blocks:
+    trivial_blocks: Blocks = [[]]  # For the constant term.
+    for block in trivial_blocks + feature_blocks:
         shape = tuple(len(schema[name]) for name in block)
         ps = tuple(name_to_int[name] for name in block)
         suffix = "_".join(map(str, ps))
@@ -112,12 +113,10 @@ def model(
         # Sample coefficients for all extra user-provided features.
         shape = extra_features.shape[-1:]
         coef_scale = pyro.sample(
-            "coef_scale",
-            dist.LogNormal(coef_scale_loc, coef_scale_scale),
+            "coef_scale", dist.LogNormal(coef_scale_loc, coef_scale_scale)
         )
         coefs[None] = pyro.sample(
-            "coef",
-            dist.Normal(torch.zeros(shape), coef_scale).to_event(1),
+            "coef", dist.Normal(torch.zeros(shape), coef_scale).to_event(1)
         )
 
     # Compute the linear response function.
