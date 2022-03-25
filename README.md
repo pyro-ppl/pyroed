@@ -7,15 +7,22 @@ Pyroed is a framework for model-based optimization of sequences of discrete
 choices with constraints among choices.
 Pyroed aims to address the regime where there is very little data (100-10000
 observations), small batch size (say 10-100), short sequences (length 2-100) of
-heterogeneous choice sets, and possibly with constraints among choices at
+heterogeneous choice sets, and possibly with [constraints](https://broadinstitute.github.io/pyroed/constraints.html) among choices at
 different positions in the sequence.
 
-Under the hood, Pyroed performs Thompson sampling against a Bayesian linear
-regression model that is automatically generated from a Pyroed problem
-specification, deferring to [Pyro](https://pyro.ai) for Bayesian inference
-(either variational or mcmc) and to annealed Gibbs sampling for discrete
-optimization.
-All numerics is performed by [PyTorch](https://pytorch.org).
+Under the hood, Pyroed performs
+[Thompson sampling](https://broadinstitute.github.io/pyroed/internals.html#pyroed.oed.thompson_sample)
+against a hierarchical Bayesian
+[linear regression model](https://broadinstitute.github.io/pyroed/internals.html#pyroed.models.model)
+that is automatically generated from a Pyroed problem specification, deferring
+to [Pyro](https://pyro.ai) for Bayesian inference (either
+[variational](https://broadinstitute.github.io/pyroed/internals.html#pyroed.inference.fit_svi)
+or
+[MCMC](https://broadinstitute.github.io/pyroed/internals.html#pyroed.inference.fit_mcmc))
+and to
+[annealed Gibbs sampling](https://broadinstitute.github.io/pyroed/internals.html#pyroed.optimizers.optimize_simulated_annealing)
+for discrete optimization.  All numerics is performed by
+[PyTorch](https://pytorch.org).
 
 ## Installing
 
