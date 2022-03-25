@@ -74,6 +74,7 @@
 
 <span class="kn">import</span> <span class="nn">pyro.poutine</span> <span class="k">as</span> <span class="nn">poutine</span>
 <span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">pyro.infer.reparam</span> <span class="kn">import</span> <span class="n">AutoReparam</span>
 
 <span class="kn">from</span> <span class="nn">.inference</span> <span class="kn">import</span> <span class="n">fit_mcmc</span><span class="p">,</span> <span class="n">fit_svi</span>
 <span class="kn">from</span> <span class="nn">.models</span> <span class="kn">import</span> <span class="n">model</span>
@@ -150,6 +151,14 @@
 <span class="sd">    :returns: A design as a set of tuples of choices.</span>
 <span class="sd">    :rtype: set</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">jit_compile</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">inference</span> <span class="o">==</span> <span class="s2">&quot;svi&quot;</span><span class="p">:</span>
+            <span class="n">jit_compile</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># default to False to avoid jit errors</span>
+        <span class="k">elif</span> <span class="n">inference</span> <span class="o">==</span> <span class="s2">&quot;mcmc&quot;</span><span class="p">:</span>
+            <span class="n">jit_compile</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># default to True for speed</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown inference type: </span><span class="si">{</span><span class="n">inference</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
     <span class="c1"># Compute extra features.</span>
     <span class="n">extra_features</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">feature_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -170,7 +179,13 @@
         <span class="n">response_type</span><span class="o">=</span><span class="n">response_type</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">assert</span> <span class="n">thompson_temperature</span> <span class="o">&gt;</span> <span class="mi">0</span>
-    <span class="n">hot_model</span> <span class="o">=</span> <span class="n">poutine</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">bound_model</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">thompson_temperature</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">thompson_temperature</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">bound_model</span> <span class="o">=</span> <span class="n">poutine</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">bound_model</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">thompson_temperature</span><span class="p">)</span>
+    <span class="c1"># Reparametrization improves variational inference, but doesn&#39;t work with</span>
+    <span class="c1"># poutine.scale, jit compilation, or mcmc.</span>
+    <span class="k">if</span> <span class="n">thompson_temperature</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">jit_compile</span> <span class="ow">and</span> <span class="n">inference</span> <span class="o">==</span> <span class="s2">&quot;svi&quot;</span><span class="p">:</span>
+        <span class="n">bound_model</span> <span class="o">=</span> <span class="n">AutoReparam</span><span class="p">()(</span><span class="n">bound_model</span><span class="p">)</span>
+        <span class="n">poutine</span><span class="o">.</span><span class="n">block</span><span class="p">(</span><span class="n">bound_model</span><span class="p">)()</span>  <span class="c1"># initialize reparam</span>
 
     <span class="c1"># Fit a posterior distribution over parameters given experiment data.</span>
     <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
@@ -181,7 +196,7 @@
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">inference</span> <span class="o">==</span> <span class="s2">&quot;svi&quot;</span><span class="p">:</span>
             <span class="n">sampler</span> <span class="o">=</span> <span class="n">fit_svi</span><span class="p">(</span>
-                <span class="n">hot_model</span><span class="p">,</span>
+                <span class="n">bound_model</span><span class="p">,</span>
                 <span class="n">num_steps</span><span class="o">=</span><span class="n">svi_num_steps</span><span class="p">,</span>
                 <span class="n">jit_compile</span><span class="o">=</span><span class="n">jit_compile</span><span class="p">,</span>
                 <span class="n">plot</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -190,7 +205,7 @@
         <span class="k">elif</span> <span class="n">inference</span> <span class="o">==</span> <span class="s2">&quot;mcmc&quot;</span><span class="p">:</span>
             <span class="k">assert</span> <span class="n">mcmc_num_samples</span> <span class="o">&gt;=</span> <span class="n">design_size</span>
             <span class="n">sampler</span> <span class="o">=</span> <span class="n">fit_mcmc</span><span class="p">(</span>
-                <span class="n">hot_model</span><span class="p">,</span>
+                <span class="n">bound_model</span><span class="p">,</span>
                 <span class="n">num_samples</span><span class="o">=</span><span class="n">mcmc_num_samples</span><span class="p">,</span>
                 <span class="n">warmup_steps</span><span class="o">=</span><span class="n">mcmc_warmup_steps</span><span class="p">,</span>
                 <span class="n">num_chains</span><span class="o">=</span><span class="n">mcmc_num_chains</span><span class="p">,</span>
@@ -212,7 +227,7 @@
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">design_size</span> <span class="o">+</span> <span class="n">max_tries</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">log_every</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="n">coefs</span> <span class="o">=</span> <span class="n">poutine</span><span class="o">.</span><span class="n">condition</span><span class="p">(</span><span class="n">hot_model</span><span class="p">,</span> <span class="n">sampler</span><span class="p">())()</span>
+            <span class="n">coefs</span> <span class="o">=</span> <span class="n">poutine</span><span class="o">.</span><span class="n">condition</span><span class="p">(</span><span class="n">bound_model</span><span class="p">,</span> <span class="n">sampler</span><span class="p">())()</span>
 
             <span class="n">seq</span> <span class="o">=</span> <span class="n">optimize_simulated_annealing</span><span class="p">(</span>
                 <span class="n">schema</span><span class="p">,</span>
