@@ -1,5 +1,6 @@
+import functools
 import warnings
-from typing import Dict, Optional, Set, Tuple
+from typing import Callable, Dict, Optional, Set, Tuple
 
 import pyro.poutine as poutine
 import torch
@@ -18,6 +19,7 @@ def thompson_sample(
     experiment: Dict[str, torch.Tensor],
     *,
     design_size: int = 10,
+    feature_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
     response_type: str = "unit_interval",
     inference: str = "svi",
     mcmc_num_samples: int = 500,
@@ -41,23 +43,33 @@ def thompson_sample(
     :param dict experiment: A dict containing all old experiment data.
     :param int design_size: Number of designs to try to return (sometimes
         fewer designs are found).
+    :param callable feature_fn: An optional callback to generate additional
+        features.
     :param str response_type: Type of response, one of: "real", "unit_interval".
     :param str inference: Inference algorithm, one of: "svi", "mcmc".
     :returns: A design as a set of tuples of choices.
     :rtype: set
     """
+    # Compute extra features.
+    extra_features = None
+    if feature_fn is not None:
+        with torch.no_grad():
+            extra_features = feature_fn(experiment["sequences"])
+        assert isinstance(extra_features, torch.Tensor)
+
     # Pass max_batch_id separately as a python int to allow jitting.
     max_batch_id = int(experiment["batch_ids"].max())
 
-    @poutine.scale(scale=1 / thompson_temperature)
-    def hot_model():
-        return model(
-            schema,
-            feature_blocks,
-            experiment,
-            max_batch_id=max_batch_id,
-            response_type=response_type,
-        )
+    bound_model = functools.partial(
+        model,
+        schema,
+        feature_blocks,
+        extra_features,
+        experiment,
+        max_batch_id=max_batch_id,
+        response_type=response_type,
+    )
+    hot_model = poutine.scale(bound_model, 1 / thompson_temperature)
 
     # Fit a posterior distribution over parameters given experiment data.
     with warnings.catch_warnings():
@@ -105,6 +117,7 @@ def thompson_sample(
                 constraints,
                 gibbs_blocks,
                 coefs,
+                feature_fn=feature_fn,
                 temperature_schedule=temperature_schedule,
                 log_every=log_every,
             )

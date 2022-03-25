@@ -32,6 +32,7 @@ def generate_fake_data(
     B = num_batches
     N = sequences_per_batch * B
     experiment: Dict[str, torch.Tensor] = {}
+    feature_fn = None
 
     # Work around irrelevant PyTorch interface change warnings.
     with warnings.catch_warnings():
@@ -41,7 +42,9 @@ def generate_fake_data(
     experiment["sequences"] = torch.stack(
         [torch.randint(0, len(choices), (N,)) for choices in schema.values()], dim=-1
     )
-    trace = poutine.trace(model).get_trace(schema, feature_blocks, experiment)
+    trace = poutine.trace(model).get_trace(
+        schema, feature_blocks, feature_fn, experiment
+    )
     truth: Dict[str, torch.Tensor] = {
         name: site["value"].detach()
         for name, site in trace.nodes.items()

@@ -1,5 +1,6 @@
 import operator
 from functools import reduce
+from typing import Callable, Optional
 
 import pyro.distributions as dist
 import torch
@@ -15,6 +16,7 @@ def optimize_simulated_annealing(
     gibbs_blocks: Blocks,
     coefs: dict,
     *,
+    feature_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
     temperature_schedule: torch.Tensor,
     max_tries=10000,
     log_every=100,
@@ -54,7 +56,10 @@ def optimize_simulated_annealing(
     if not constraint_fn(state):
         raise ValueError("Failed to find a feasible initial state")
     best_state = state
-    best_logits = float(linear_response(schema, coefs, state))
+    extra_features = None
+    if feature_fn is not None:
+        extra_features = feature_fn(state)
+    best_logits = float(linear_response(schema, coefs, state, extra_features))
 
     # Anneal, recording the best state.
     for step, temperature in enumerate(temperature_schedule):
@@ -76,7 +81,9 @@ def optimize_simulated_annealing(
         assert bounds.check(nbhd).all()
 
         # Randomly sample variables in the block wrt an annealed logits.
-        logits = linear_response(schema, coefs, nbhd)
+        if feature_fn is not None:
+            extra_features = feature_fn(nbhd)
+        logits = linear_response(schema, coefs, nbhd, extra_features)
         assert logits.dim() == 1
         choice = dist.Categorical(logits=logits / temperature).sample()
         state[:] = nbhd[choice]

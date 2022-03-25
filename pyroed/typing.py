@@ -6,7 +6,7 @@ import torch
 
 # Cannot use OrderedDict yet https://stackoverflow.com/questions/41207128
 Schema = Dict[str, List[Optional[str]]]
-Coefs = Dict[Tuple[str, ...], torch.Tensor]
+Coefs = Dict[Optional[Tuple[str, ...]], torch.Tensor]
 Blocks = List[List[str]]
 Constraints = List[Callable]
 

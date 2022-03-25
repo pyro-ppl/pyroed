@@ -1,5 +1,6 @@
+import functools
 import warnings
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -14,6 +15,7 @@ from .typing import Blocks, Constraints, Schema
 matplotlib.use("Agg")
 
 
+@torch.no_grad()
 def criticize(
     schema: Schema,
     constraints: Constraints,
@@ -22,6 +24,7 @@ def criticize(
     experiment: Dict[str, torch.Tensor],
     test_data: Dict[str, torch.Tensor],
     *,
+    feature_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
     response_type: str = "unit_interval",
     inference: str = "svi",
     num_posterior_samples: int = 11,
@@ -31,6 +34,7 @@ def criticize(
     svi_num_steps: int = 201,
     jit_compile: Optional[bool] = None,
     log_every: int = 100,
+    filename: str = "criticize.pdf",
 ) -> None:
     """
     Plots observed versus predicted responses on a held out test set.
@@ -42,14 +46,19 @@ def criticize(
     :param dict experiment: A dict containing all old experiment data.
     :param dict test_data: A dict containing held out test data.
     """
+    # Compute extra features.
+    extra_features = None
+    if feature_fn is not None:
+        extra_features = feature_fn(experiment["sequences"])
 
-    def bound_model():
-        return model(
-            schema,
-            feature_blocks,
-            experiment,
-            response_type=response_type,
-        )
+    bound_model = functools.partial(
+        model,
+        schema,
+        feature_blocks,
+        extra_features,
+        experiment,
+        response_type=response_type,
+    )
 
     # Fit a posterior distribution over parameters given experiment data.
     with warnings.catch_warnings():
@@ -76,17 +85,20 @@ def criticize(
         else:
             raise ValueError(f"Unknown inference type: {inference}")
 
-        test_responses = test_data["responses"].numpy()
-        test_sequences = test_data["sequences"].numpy()
-
-        sort_idx = np.argsort(test_responses)
+        test_responses = test_data["responses"]
+        test_sequences = test_data["sequences"]
+        sort_idx = test_responses.sort(0).indices
         test_responses = test_responses[sort_idx]
         test_sequences = test_sequences[sort_idx]
+        if feature_fn is not None:
+            extra_features = feature_fn(test_sequences)
 
         predictions = []
         for _ in range(num_posterior_samples):
             coefs = poutine.condition(bound_model, sampler())()
-            test_prediction = linear_response(schema, coefs, test_sequences).sigmoid()
+            test_prediction = linear_response(
+                schema, coefs, test_sequences, extra_features
+            ).sigmoid()
             predictions.append(test_prediction)
 
         test_predictions = torch.stack(predictions).detach().cpu().numpy()
@@ -103,8 +115,8 @@ def criticize(
 
         plt.errorbar(
             test_responses,
-            mean_predictions.numpy(),
-            yerr=std_predictions.numpy(),
+            mean_predictions,
+            yerr=std_predictions,
             marker="o",
             linestyle="None",
         )
@@ -114,5 +126,5 @@ def criticize(
         ax.set_ylabel("Predictedresponse")
 
         fig.tight_layout()
-        plt.savefig("criticize.pdf")
-        print("Saving criticize.pdf")
+        plt.savefig(filename)
+        print(f"Saved {filename}")

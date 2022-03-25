@@ -12,6 +12,7 @@ def linear_response(
     schema: Schema,
     coefs: Coefs,
     sequence: torch.Tensor,
+    extra_features: Optional[torch.Tensor],
 ) -> torch.Tensor:
     """
     Linear response function.
@@ -20,6 +21,9 @@ def linear_response(
     :param dict coefs: A dictionary mapping feature tuples to coefficient
         tensors.
     :param torch.Tensor sequence: A tensor representing a sequence.
+    :param torch.Tensor extra_features: An optional tensor of extra features,
+        i.e. those computed by a custom ``features_fn`` rather than standard
+        cross features from ``FEATURE_BLOCKS``.
     :returns: The response.
     :rtype: torch.Tensor
     """
@@ -28,15 +32,26 @@ def linear_response(
         assert isinstance(coefs, dict)
         assert sequence.dtype == torch.long
         assert sequence.size(-1) == len(schema)
+        if extra_features is None:
+            assert None not in coefs
+        else:
+            assert None in coefs
+            assert coefs[None].dim() == 1
+            assert extra_features.shape == sequence.shape[:-1] + coefs[None].shape
+        assert (extra_features is not None) == (None in coefs)
     choices = dict(zip(schema, sequence.unbind(-1)))
 
     result = torch.tensor(0.0)
     for key, coef in coefs.items():
-        if not torch._C._get_tracing_state():
-            assert isinstance(key, tuple)
-            assert coef.dim() == len(key)
-        index = tuple(choices[name] for name in key)
-        result = result + coef[index]
+        if key is None:
+            assert extra_features is not None
+            result = result + extra_features @ coefs[None]
+        else:
+            if not torch._C._get_tracing_state():
+                assert isinstance(key, tuple)
+                assert coef.dim() == len(key)
+            index = tuple(choices[name] for name in key)
+            result = result + coef[index]
 
     return result
 
@@ -44,6 +59,7 @@ def linear_response(
 def model(
     schema: Schema,
     feature_blocks: Blocks,
+    extra_features: Optional[torch.Tensor],
     experiment: Dict[str, torch.Tensor],  # sequences, batch_id, optional(response)
     *,
     max_batch_id: Optional[int] = None,
@@ -68,6 +84,9 @@ def model(
     B = 1 + max_batch_id
     if __debug__ and not torch._C._get_tracing_state():
         validate(schema, experiment=experiment)
+        if extra_features is not None:
+            assert extra_features.dim() == 2
+            assert extra_features.size(0) == N
     name_to_int = {name: i for i, name in enumerate(schema)}
 
     # Hierarchically sample linear coefficients.
@@ -89,9 +108,25 @@ def model(
             f"coef_{suffix}",
             dist.Normal(torch.zeros(shape), coef_scale).to_event(len(shape)),
         )
+    if extra_features is not None:
+        # Sample coefficients for all extra user-provided features.
+        shape = extra_features.shape[-1:]
+        coef_scale = pyro.sample(
+            "coef_scale",
+            dist.LogNormal(coef_scale_loc, coef_scale_scale),
+        )
+        coefs[None] = pyro.sample(
+            "coef",
+            dist.Normal(torch.zeros(shape), coef_scale).to_event(1),
+        )
 
     # Compute the linear response function.
-    response_loc = linear_response(schema, coefs, experiment["sequences"])
+    response_loc = linear_response(
+        schema,
+        coefs,
+        experiment["sequences"],
+        extra_features,
+    )
 
     # Observe a noisy response.
     within_batch_scale = pyro.sample("within_batch_scale", dist.LogNormal(0, 1))

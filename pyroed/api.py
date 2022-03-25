@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Dict, Iterable, List, Optional
+from typing import Callable, Dict, Iterable, List, Optional
 
 import torch
 
@@ -104,6 +104,7 @@ def get_next_design(
     experiment: Dict[str, torch.Tensor],
     *,
     design_size: int = 10,
+    feature_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
     config: Optional[dict] = None,
 ) -> torch.Tensor:
     """
@@ -116,6 +117,11 @@ def get_next_design(
     :param dict experiment: A dict containing all old experiment data.
     :param int design_size: Number of designs to try to return (sometimes
         fewer designs are found).
+    :param callable feature_fn: An optional callback to generate additional
+        features. If provided, this function should input a batch of sequences
+        (say of shape ``batch_shape``) and return a floating point tensor of of
+        shape ``batch_shape + (F,)`` for some number of features ``F``. This
+        will be called internally during inference.
     :param dict config: Optional config. See arguments to
         :func:`~pyroed.oed.thompson_sample` for details.
     :returns: A tensor of encoded new sequences to measure, i.e. a ``design``.
@@ -146,6 +152,7 @@ def get_next_design(
         gibbs_blocks,
         experiment,
         design_size=design_size,
+        feature_fn=feature_fn,
         **config,
     )
     design = torch.tensor(sorted(design_set))

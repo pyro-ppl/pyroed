@@ -109,7 +109,6 @@ experiment = pyroed.update_experiment(SCHEMA, experiment, design, new_responses)
 ```
 We repeat step 3 as long as we like.
 
-
 ## Demo: Semi-Synthetic Experiment 
 
 For a more in-depth demonstration of Pyroed usage in practice on some transcription factor data
