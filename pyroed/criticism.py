@@ -1,5 +1,6 @@
 import functools
 import warnings
+from collections import defaultdict
 from typing import Callable, Dict, Optional
 
 import matplotlib.pyplot as plt
@@ -130,3 +131,27 @@ def criticize(
         print(f"Saved {filename}")
 
     return fig
+
+def visualize_coefs(coefs):
+    rows = defaultdict(list)
+    for key, value in coefs.items():
+        if key is None:
+            rows[0].append((key, value))
+        elif len(key) <= 2:
+            rows[len(key)].append((key, value))
+    num_rows = len(rows)
+    num_cols = max(map(len, rows.values()))
+    fig, axes = plt.subplots(num_rows, num_cols, sharex=True, sharey=True)
+    color = "red"
+    for axe, row in zip(axes, sorted(rows.items())):
+        for ax, (key, value) in zip(axe, row):
+            if value.dim() == 0:
+                plt.plot([0], [value.item()], color=color)
+            elif value.dim() == 1:
+                X = range(len(value))
+                Y = value.numpy()
+                plt.plot(X, Y, color=color)
+                plt.title(key[0])
+            elif value.dim() == 2:
+                plt.imshow(value.numpy())
+                plt.title(" x ".join(key))
