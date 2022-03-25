@@ -68,7 +68,24 @@
            <div itemprop="articleBody">
              
   <h1>Source code for pyroed.constraints</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module implements a declarative langauge of constraints on sequence</span>
+<span class="sd">values. The language consists of:</span>
+
+<span class="sd">- Atomic constraints :class:`TakesValue`, :class:`TakesValues`, and</span>
+<span class="sd">  :class:`AllDifferent`</span>
+<span class="sd">- Logical operations :class:`Not`, :class:`And`, :class:`Or`, :class:`Xor`,</span>
+<span class="sd">  :class:`IfThen`, and :class:`Iff`.</span>
+
+<span class="sd">Examples in this file will reference the following ``SCHEMA``::</span>
+
+<span class="sd">    SCHEMA = OrderedDict()</span>
+<span class="sd">    SCHEMA[&quot;aa1&quot;] = [&quot;P&quot;, &quot;L&quot;, None]</span>
+<span class="sd">    SCHEMA[&quot;aa2&quot;] = [&quot;N&quot;, &quot;Y&quot;,  &quot;T&quot;, None]</span>
+<span class="sd">    SCHEMA[&quot;aa3&quot;] = [&quot;R&quot;, &quot;S&quot;]</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
@@ -78,7 +95,9 @@
 
 <div class="viewcode-block" id="Constraint"><a class="viewcode-back" href="../../constraints.html#pyroed.constraints.Constraint">[docs]</a><span class="k">class</span> <span class="nc">Constraint</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Abstract base class for constraints</span>
+<span class="sd">    Abstract base class for constraints.</span>
+
+<span class="sd">    Derived classes must implement the :meth:`__call__` method.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nd">@abstractmethod</span>
@@ -89,6 +108,10 @@
 <div class="viewcode-block" id="TakesValue"><a class="viewcode-back" href="../../constraints.html#pyroed.constraints.TakesValue">[docs]</a><span class="k">class</span> <span class="nc">TakesValue</span><span class="p">(</span><span class="n">Constraint</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Constrains a site to take a fixed value.</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        CONSTRAINTS.append(TakesValue(&quot;aa1&quot;, &quot;P&quot;))</span>
 
 <span class="sd">    :param str name: Name of a sequence variable in the schema.</span>
 <span class="sd">    :param value: The value that the variable can take.</span>
@@ -120,6 +143,10 @@
 <div class="viewcode-block" id="TakesValues"><a class="viewcode-back" href="../../constraints.html#pyroed.constraints.TakesValues">[docs]</a><span class="k">class</span> <span class="nc">TakesValues</span><span class="p">(</span><span class="n">Constraint</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Constrains a site to take one of a set of values.</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        CONSTRAINTS.append(TakesValue(&quot;aa1&quot;, &quot;P&quot;, &quot;L&quot;))</span>
 
 <span class="sd">    :param str name: Name of a sequence variable in the schema.</span>
 <span class="sd">    :param \*values: Values that the variable can take.</span>
@@ -161,6 +188,10 @@
 <div class="viewcode-block" id="AllDifferent"><a class="viewcode-back" href="../../constraints.html#pyroed.constraints.AllDifferent">[docs]</a><span class="k">class</span> <span class="nc">AllDifferent</span><span class="p">(</span><span class="n">Constraint</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Constrains a set of sites to all have distinct values.</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        CONSTRAINTS.append(AllDifferent(&quot;aa1&quot;, &quot;aa2&quot;, &quot;aa3&quot;))</span>
 
 <span class="sd">    :param str \*names: Names of sequence variables that should be distinct.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -206,6 +237,10 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Negates a constraints.</span>
 
+<span class="sd">    Example::</span>
+
+<span class="sd">        CONSTRAINTS.append(Not(TakesValue(&quot;aa1&quot;, &quot;P&quot;)))</span>
+
 <span class="sd">    :param Constraint arg: A constraint.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -224,6 +259,10 @@
 <div class="viewcode-block" id="And"><a class="viewcode-back" href="../../constraints.html#pyroed.constraints.And">[docs]</a><span class="k">class</span> <span class="nc">And</span><span class="p">(</span><span class="n">Constraint</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Conjoins two constraints.</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        CONSTRAINTS.append(And(TakesValue(&quot;aa1&quot;, None), TakesValue(&quot;aa2&quot;, None)))</span>
 
 <span class="sd">    :param Constraint lhs: A constraint.</span>
 <span class="sd">    :param Constraint rhs: A constraint.</span>
@@ -247,6 +286,10 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Disjoins two constraints.</span>
 
+<span class="sd">    Example::</span>
+
+<span class="sd">        CONSTRAINTS.append(Or(TakesValue(&quot;aa1&quot;, None), TakesValue(&quot;aa2&quot;, None)))</span>
+
 <span class="sd">    :param Constraint lhs: A constraint.</span>
 <span class="sd">    :param Constraint rhs: A constraint.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -268,6 +311,10 @@
 <div class="viewcode-block" id="Xor"><a class="viewcode-back" href="../../constraints.html#pyroed.constraints.Xor">[docs]</a><span class="k">class</span> <span class="nc">Xor</span><span class="p">(</span><span class="n">Constraint</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Exclusive or among constraints. Equivalent to ``Not(Iff(lhs, rhs))``.</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        CONSTRAINTS.append(Xor(TakesValue(&quot;aa1&quot;, None), TakesValue(&quot;aa2&quot;, None)))</span>
 
 <span class="sd">    :param Constraint lhs: A constraint.</span>
 <span class="sd">    :param Constraint rhs: A constraint.</span>
@@ -291,6 +338,10 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Conditional between constraints.</span>
 
+<span class="sd">    Example::</span>
+
+<span class="sd">        CONSTRAINTS.append(IfThen(TakesValue(&quot;aa1&quot;, None), TakesValue(&quot;aa2&quot;, None)))</span>
+
 <span class="sd">    :param Constraint lhs: A constraint.</span>
 <span class="sd">    :param Constraint rhs: A constraint.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -312,6 +363,10 @@
 <div class="viewcode-block" id="Iff"><a class="viewcode-back" href="../../constraints.html#pyroed.constraints.Iff">[docs]</a><span class="k">class</span> <span class="nc">Iff</span><span class="p">(</span><span class="n">Constraint</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Equality among constraints.</span>
+
+<span class="sd">    Exmaple::</span>
+
+<span class="sd">        CONSTRAINTS.append(Iff(TakesValue(&quot;aa1&quot;, None), TakesValue(&quot;aa2&quot;, None)))</span>
 
 <span class="sd">    :param Constraint lhs: A constraint.</span>
 <span class="sd">    :param Constraint rhs: A constraint.</span>

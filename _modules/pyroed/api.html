@@ -68,7 +68,46 @@
            <div itemprop="articleBody">
              
   <h1>Source code for pyroed.api</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Pyroed&#39;s high-level interface includes a design language and a set of</span>
+<span class="sd">functions to operate on Python data structures.</span>
+
+<span class="sd">The **design language** allows you to specify a problem by defining a</span>
+<span class="sd">``SCHEMA``, a list ``CONSTRAINTS`` of :class:`~pyroed.constraints.Constraint`</span>
+<span class="sd">objects, a list ``FEATURE_BLOCKS`` defining cross features, and a list</span>
+<span class="sd">``GIBBS_BLOCKS`` defining groups of features that are related to each other.</span>
+<span class="sd">The examples in this module will use the following model specification::</span>
+
+<span class="sd">    SCHEMA = OrderedDict()</span>
+<span class="sd">    SCHEMA[&quot;aa1&quot;] = [&quot;P&quot;, &quot;L&quot;, None]</span>
+<span class="sd">    SCHEMA[&quot;aa2&quot;] = [&quot;N&quot;, &quot;Y&quot;,  &quot;T&quot;, None]</span>
+<span class="sd">    SCHEMA[&quot;aa3&quot;] = [&quot;R&quot;, &quot;S&quot;]</span>
+
+<span class="sd">    CONSTRAINTS = [Not(And(TakesValue(&quot;aa1&quot;, None), TakesValue(&quot;aa2&quot;, None)))]</span>
+
+<span class="sd">    FEATURE_BLOCKS = [[&quot;aa1&quot;], [&quot;aa2&quot;], [&quot;aa3&quot;], [&quot;aa1&quot;, &quot;aa2&quot;], [&quot;aa2&quot;, &quot;aa3&quot;]]</span>
+
+<span class="sd">    GIBBS_BLOCKS = [[&quot;aa1&quot;, &quot;aa2&quot;], [&quot;aa2&quot;, &quot;aa3&quot;]]</span>
+
+<span class="sd">After declaring the design space, we can progressively gather data into an</span>
+<span class="sd">``experiment`` dict by using the functions in this module and by experimentally</span>
+<span class="sd">measuring sequences.</span>
+
+<span class="sd">- :func:`encode_design` and :func:`decode_design` convert between</span>
+<span class="sd">  text-representations of designs like ``[[&quot;P&quot;, &quot;N&quot;, &quot;R&quot;], [&quot;P&quot;, &quot;N&quot;, &quot;S&quot;]]``</span>
+<span class="sd">  and PyTorch representations of designs like</span>
+<span class="sd">  ``torch.tensor([[0, 0, 0], [0, 0, 1]])``.</span>
+<span class="sd">- :func:`start_experiment` initializes an experiment dict,</span>
+<span class="sd">- :func:`get_next_design` suggests a next set of sequences to test, and</span>
+<span class="sd">- :func:`update_experiment` updates an experiment dict with measured responses.</span>
+
+<span class="sd">Note that :func:`get_next_design` is merely an algorithmic suggestion, you can</span>
+<span class="sd">ignore the suggestion or measure a different set of sequences if you want. For</span>
+<span class="sd">example if some of your measurements are lost due to technical reasons, you can</span>
+<span class="sd">simply pass a subset of your design to :func:`update_experiment`.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
@@ -82,6 +121,23 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts a human readable list of sequences into a tensor.</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        SCHEMA = OrderedDict()</span>
+<span class="sd">        SCHEMA[&quot;aa1&quot;] = [&quot;P&quot;, &quot;L&quot;, None]</span>
+<span class="sd">        SCHEMA[&quot;aa2&quot;] = [&quot;N&quot;, &quot;Y&quot;,  &quot;T&quot;, None]</span>
+<span class="sd">        SCHEMA[&quot;aa3&quot;] = [&quot;R&quot;, &quot;S&quot;]</span>
+
+<span class="sd">        design = [</span>
+<span class="sd">            [&quot;P&quot;, &quot;N&quot;, &quot;R&quot;],</span>
+<span class="sd">            [&quot;P&quot;, &quot;N&quot;, &quot;S&quot;],</span>
+<span class="sd">            [None, &quot;N&quot;, &quot;R&quot;],</span>
+<span class="sd">            [&quot;P&quot;, None, &quot;R&quot;],</span>
+<span class="sd">        ]</span>
+<span class="sd">        sequences = encode_design(SCHEMA, design)</span>
+<span class="sd">        print(sequences)</span>
+<span class="sd">        # torch.tensor([[0, 0, 0], [0, 0, 1], [2, 0, 0], [0, 3, 0]])</span>
 
 <span class="sd">    :param OrderedDict schema: A schema dict.</span>
 <span class="sd">    :param list design: A list of list of choices (strings or None).</span>
@@ -113,6 +169,18 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts an tensor representation of a design into a readable list of designs.</span>
 
+<span class="sd">    Example::</span>
+
+<span class="sd">        SCHEMA = OrderedDict()</span>
+<span class="sd">        SCHEMA[&quot;aa1&quot;] = [&quot;P&quot;, &quot;L&quot;, None]</span>
+<span class="sd">        SCHEMA[&quot;aa2&quot;] = [&quot;N&quot;, &quot;Y&quot;,  &quot;T&quot;, None]</span>
+<span class="sd">        SCHEMA[&quot;aa3&quot;] = [&quot;R&quot;, &quot;S&quot;]</span>
+
+<span class="sd">        sequences = torch.tensor([[0, 0, 0], [0, 0, 1], [2, 0, 0]])</span>
+<span class="sd">        design = decode_design(SCHEMA, sequences)</span>
+<span class="sd">        print(design)</span>
+<span class="sd">        # [[&quot;P&quot;, &quot;N&quot;, &quot;R&quot;], [&quot;P&quot;, &quot;N&quot;, &quot;S&quot;], [None, &quot;N&quot;, &quot;R&quot;]]</span>
+
 <span class="sd">    :param OrderedDict schema: A schema dict.</span>
 <span class="sd">    :param torch.Tensor sequences: A tensor of encoded sequences.</span>
 <span class="sd">    :returns: A list of list of choices (strings or None).</span>
@@ -140,6 +208,18 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Creates a cumulative experiment with initial data.</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        SCHEMA = OrderedDict()</span>
+<span class="sd">        SCHEMA[&quot;aa1&quot;] = [&quot;P&quot;, &quot;L&quot;, None]</span>
+<span class="sd">        SCHEMA[&quot;aa2&quot;] = [&quot;N&quot;, &quot;Y&quot;,  &quot;T&quot;, None]</span>
+<span class="sd">        SCHEMA[&quot;aa3&quot;] = [&quot;R&quot;, &quot;S&quot;]</span>
+
+<span class="sd">        sequences = torch.tensor([[0, 0, 0], [0, 0, 1], [2, 0, 0]])</span>
+<span class="sd">        responses = torch.tensor([0.1, 0.4, 0.5])</span>
+
+<span class="sd">        experiment = start_experiment(SCHEMA, sequences, responses)</span>
 
 <span class="sd">    :param OrderedDict schema: A schema dict.</span>
 <span class="sd">    :param torch.Tensor sequences: A tensor of encoded sequences that have been</span>
@@ -180,8 +260,43 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Generate a new design given cumulative experimental data.</span>
 
+<span class="sd">    Under the hood this runs :func:`~pyroed.oed.thompson_sample`, which</span>
+<span class="sd">    performs Bayesian inference via either variational inference</span>
+<span class="sd">    :func:`~pyroed.inference.fit_svi` or MCMC</span>
+<span class="sd">    :func:`~pyroed.inference.fit_mcmc` and performs optimization via</span>
+<span class="sd">    :func:`~pyroed.optimizers.optimize_simulated_annealing`. These algorithms</span>
+<span class="sd">    can be tuned through the ``config`` dict.</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        # Initialize experiment.</span>
+<span class="sd">        sequences = encode_design(SCHEMA, [</span>
+<span class="sd">            [&quot;P&quot;, &quot;N&quot;, &quot;R&quot;],</span>
+<span class="sd">            [&quot;P&quot;, &quot;N&quot;, &quot;S&quot;],</span>
+<span class="sd">            [None, &quot;N&quot;, &quot;R&quot;],</span>
+<span class="sd">            [&quot;P&quot;, None, &quot;R&quot;],</span>
+<span class="sd">        ])</span>
+<span class="sd">        print(sequences)</span>
+<span class="sd">        # torch.tensor([[0, 0, 0], [0, 0, 1], [2, 0, 0], [0, 3, 0]])</span>
+<span class="sd">        experiment = {</span>
+<span class="sd">            &quot;sequences&quot;: sequences,</span>
+<span class="sd">            &quot;responses&quot;: torch.tensor([0.1, 0.4, 0.5, 0.2]),</span>
+<span class="sd">            &quot;batch_ids&quot;: torch.tensor([0, 0, 1, 1]),</span>
+<span class="sd">        }</span>
+
+<span class="sd">        # Run Bayesian optimization to get the next sequences to measure.</span>
+<span class="sd">        new_sequences = get_next_design(</span>
+<span class="sd">            SCHEMA, CONSTRAINTS, FEATURE_BLOCKS, GIBBS_BLOCKS,</span>
+<span class="sd">            experiment, design_size=2,</span>
+<span class="sd">        )</span>
+<span class="sd">        print(new_sequences)</span>
+<span class="sd">        # torch.tensor([[1, 1, 1], [1, 2, 0]])</span>
+<span class="sd">        print(decode_design(SCHEMA, new_sequences))</span>
+<span class="sd">        # [[&quot;L&quot;, &quot;Y&quot;, &quot;S&quot;], [&quot;L&quot;, T&quot;, &quot;R&quot;]]</span>
+
 <span class="sd">    :param OrderedDict schema: A schema dict.</span>
-<span class="sd">    :param list constraints: A list of constraints.</span>
+<span class="sd">    :param list constraints: A list of zero or more</span>
+<span class="sd">        :class:`~pyroed.constraints.Constraint` objects.</span>
 <span class="sd">    :param list feature_blocks: A list of choice blocks for linear regression.</span>
 <span class="sd">    :param list gibbs_blocks: A list of choice blocks for Gibbs sampling.</span>
 <span class="sd">    :param dict experiment: A dict containing all old experiment data.</span>
@@ -239,7 +354,11 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Updates a cumulative experiment by appending new data.</span>
 
-<span class="sd">    Note this does not modify its arguments, you must capture the result.</span>
+<span class="sd">    Note this does not modify its arguments; you must capture the result::</span>
+
+<span class="sd">        experiment = update_experiment(</span>
+<span class="sd">            SCHEMA, experiment, new_sequences, new_responses, new_batch_ids</span>
+<span class="sd">        )</span>
 
 <span class="sd">    :param OrderedDict schema: A schema dict.</span>
 <span class="sd">    :param dict experiment: A dict containing all old experiment data.</span>
