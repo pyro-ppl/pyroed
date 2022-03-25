@@ -29,8 +29,10 @@ setup(
     author="Pyro team at the Broad Institute of MIT and Harvard",
     author_email="fritz.obermeyer@gmail.com",
     install_requires=[
-        "pyro-ppl>=1.7",
+        "matplotlib",
         "pandas",
+        "pyro-ppl>=1.7",
+        "scipy",
     ],
     extras_require={
         "test": [
@@ -39,7 +41,6 @@ setup(
             "flake8",
             "pytest>=5.0",
             "mypy>=0.812",
-            "matplotlib",
         ],
     },
     python_requires=">=3.7",

@@ -120,9 +120,7 @@ def test_end_to_end(inference, jit_compile, response_type, feature_fn):
     with tempfile.TemporaryDirectory() as dirname:
         criticize(
             SCHEMA,
-            CONSTRAINTS,
             FEATURE_BLOCKS,
-            GIBBS_BLOCKS,
             experiment,
             test_data,
             feature_fn=feature_fn,

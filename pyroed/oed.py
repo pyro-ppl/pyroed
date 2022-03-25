@@ -27,6 +27,7 @@ def thompson_sample(
     mcmc_warmup_steps: int = 500,
     mcmc_num_chains: int = 1,
     svi_num_steps: int = 201,
+    svi_reparam: bool = False,
     sa_num_steps: int = 1000,
     max_tries: int = 1000,
     thompson_temperature: float = 1.0,
@@ -65,6 +66,8 @@ def thompson_sample(
         as ``mcmc_num_samples``.
     :param int svi_num_steps: If ``inference == "svi"`` this sets the number of
         steps to run stochastic variational inference.
+    :param bool svi_reparam: Whether to reparametrize SVI inference.
+        This only works when ``thompson_temperature == 1``.
     :param int sa_num_steps: Number of steps to run simulated annealing, at
         each Thompson sample.
     :param int max_tries: Number of extra Thompson samples to draw in search
@@ -111,9 +114,9 @@ def thompson_sample(
     assert thompson_temperature > 0
     if thompson_temperature != 1:
         bound_model = poutine.scale(bound_model, 1 / thompson_temperature)
-    # Reparametrization improves variational inference, but doesn't work with
-    # poutine.scale, jit compilation, or mcmc.
-    if thompson_temperature == 1 and not jit_compile and inference == "svi":
+    # Reparametrization can improve variational inference, but doesn't work
+    # with poutine.scale, jit compilation, or mcmc.
+    if inference == "svi" and svi_reparam and thompson_temperature == 1:
         bound_model = AutoReparam()(bound_model)
         poutine.block(bound_model)()  # initialize reparam
 

@@ -47,8 +47,8 @@ def linear_response(
             assert extra_features is not None
             result = result + extra_features @ coefs[None]
         else:
+            assert isinstance(key, tuple)
             if not torch._C._get_tracing_state():
-                assert isinstance(key, tuple)
                 assert coef.dim() == len(key)
             index = tuple(choices[name] for name in key)
             result = result + coef[index]
@@ -91,7 +91,7 @@ def model(
 
     # Hierarchically sample linear coefficients.
     coef_scale_loc = pyro.sample("coef_scale_loc", dist.Normal(-2, 1))
-    coef_scale_scale = pyro.sample("coef_scale_scale", dist.LogNormal(0, 1))
+    coef_scale_scale = pyro.sample("coef_scale_scale", dist.LogNormal(-2, 1))
     coefs: Coefs = {}
     trivial_blocks: Blocks = [[]]  # For the constant term.
     for block in trivial_blocks + feature_blocks:

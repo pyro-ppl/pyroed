@@ -1,5 +1,8 @@
+import matplotlib
 import numpy as np
 import pyro
+
+matplotlib.use("Agg")
 
 
 def pytest_runtest_setup(item):
