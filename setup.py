@@ -39,6 +39,7 @@ setup(
             "flake8",
             "pytest>=5.0",
             "mypy>=0.812",
+            "matplotlib",
         ],
     },
     python_requires=">=3.7",
