@@ -70,6 +70,7 @@
   <h1>Source code for pyroed.optimizers</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">operator</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">reduce</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">import</span> <span class="nn">pyro.distributions</span> <span class="k">as</span> <span class="nn">dist</span>
 <span class="kn">import</span> <span class="nn">torch</span>
@@ -85,6 +86,7 @@
     <span class="n">gibbs_blocks</span><span class="p">:</span> <span class="n">Blocks</span><span class="p">,</span>
     <span class="n">coefs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
+    <span class="n">feature_fn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">temperature_schedule</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">max_tries</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>
     <span class="n">log_every</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
@@ -124,7 +126,10 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">constraint_fn</span><span class="p">(</span><span class="n">state</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Failed to find a feasible initial state&quot;</span><span class="p">)</span>
     <span class="n">best_state</span> <span class="o">=</span> <span class="n">state</span>
-    <span class="n">best_logits</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">linear_response</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">coefs</span><span class="p">,</span> <span class="n">state</span><span class="p">))</span>
+    <span class="n">extra_features</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">feature_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">extra_features</span> <span class="o">=</span> <span class="n">feature_fn</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+    <span class="n">best_logits</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">linear_response</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">coefs</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">extra_features</span><span class="p">))</span>
 
     <span class="c1"># Anneal, recording the best state.</span>
     <span class="k">for</span> <span class="n">step</span><span class="p">,</span> <span class="n">temperature</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">temperature_schedule</span><span class="p">):</span>
@@ -146,7 +151,9 @@
         <span class="k">assert</span> <span class="n">bounds</span><span class="o">.</span><span class="n">check</span><span class="p">(</span><span class="n">nbhd</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
 
         <span class="c1"># Randomly sample variables in the block wrt an annealed logits.</span>
-        <span class="n">logits</span> <span class="o">=</span> <span class="n">linear_response</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">coefs</span><span class="p">,</span> <span class="n">nbhd</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">feature_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">extra_features</span> <span class="o">=</span> <span class="n">feature_fn</span><span class="p">(</span><span class="n">nbhd</span><span class="p">)</span>
+        <span class="n">logits</span> <span class="o">=</span> <span class="n">linear_response</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">coefs</span><span class="p">,</span> <span class="n">nbhd</span><span class="p">,</span> <span class="n">extra_features</span><span class="p">)</span>
         <span class="k">assert</span> <span class="n">logits</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span>
         <span class="n">choice</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span><span class="n">logits</span><span class="o">=</span><span class="n">logits</span> <span class="o">/</span> <span class="n">temperature</span><span class="p">)</span><span class="o">.</span><span class="n">sample</span><span class="p">()</span>
         <span class="n">state</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">nbhd</span><span class="p">[</span><span class="n">choice</span><span class="p">]</span>

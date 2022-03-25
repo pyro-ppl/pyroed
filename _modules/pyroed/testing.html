@@ -102,6 +102,7 @@
     <span class="n">B</span> <span class="o">=</span> <span class="n">num_batches</span>
     <span class="n">N</span> <span class="o">=</span> <span class="n">sequences_per_batch</span> <span class="o">*</span> <span class="n">B</span>
     <span class="n">experiment</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">feature_fn</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="c1"># Work around irrelevant PyTorch interface change warnings.</span>
     <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
@@ -111,7 +112,9 @@
     <span class="n">experiment</span><span class="p">[</span><span class="s2">&quot;sequences&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
         <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">choices</span><span class="p">),</span> <span class="p">(</span><span class="n">N</span><span class="p">,))</span> <span class="k">for</span> <span class="n">choices</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">values</span><span class="p">()],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span>
     <span class="p">)</span>
-    <span class="n">trace</span> <span class="o">=</span> <span class="n">poutine</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="n">get_trace</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">feature_blocks</span><span class="p">,</span> <span class="n">experiment</span><span class="p">)</span>
+    <span class="n">trace</span> <span class="o">=</span> <span class="n">poutine</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="n">get_trace</span><span class="p">(</span>
+        <span class="n">schema</span><span class="p">,</span> <span class="n">feature_blocks</span><span class="p">,</span> <span class="n">feature_fn</span><span class="p">,</span> <span class="n">experiment</span>
+    <span class="p">)</span>
     <span class="n">truth</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
         <span class="n">name</span><span class="p">:</span> <span class="n">site</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">site</span> <span class="ow">in</span> <span class="n">trace</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>

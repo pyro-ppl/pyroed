@@ -69,7 +69,7 @@
              
   <h1>Source code for pyroed.api</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 
@@ -174,6 +174,7 @@
     <span class="n">experiment</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">design_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="n">feature_fn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -186,7 +187,12 @@
 <span class="sd">    :param dict experiment: A dict containing all old experiment data.</span>
 <span class="sd">    :param int design_size: Number of designs to try to return (sometimes</span>
 <span class="sd">        fewer designs are found).</span>
-<span class="sd">    :param dict config: Optional config. See arguments to</span>
+<span class="sd">    :param callable feature_fn: An optional callback to generate additional</span>
+<span class="sd">        features. If provided, this function should input a batch of sequences</span>
+<span class="sd">        (say of shape ``batch_shape``) and return a floating point tensor of of</span>
+<span class="sd">        shape ``batch_shape + (F,)`` for some number of features ``F``. This</span>
+<span class="sd">        will be called internally during inference.</span>
+<span class="sd">    :param dict config: Optional config dict. See keyword arguments to</span>
 <span class="sd">        :func:`~pyroed.oed.thompson_sample` for details.</span>
 <span class="sd">    :returns: A tensor of encoded new sequences to measure, i.e. a ``design``.</span>
 <span class="sd">    :rtype: torch.Tensor</span>
@@ -216,6 +222,7 @@
         <span class="n">gibbs_blocks</span><span class="p">,</span>
         <span class="n">experiment</span><span class="p">,</span>
         <span class="n">design_size</span><span class="o">=</span><span class="n">design_size</span><span class="p">,</span>
+        <span class="n">feature_fn</span><span class="o">=</span><span class="n">feature_fn</span><span class="p">,</span>
         <span class="o">**</span><span class="n">config</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">design</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">design_set</span><span class="p">))</span>

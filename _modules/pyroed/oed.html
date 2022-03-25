@@ -68,8 +68,9 @@
            <div itemprop="articleBody">
              
   <h1>Source code for pyroed.oed</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">warnings</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span>
+<span></span><span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">pyro.poutine</span> <span class="k">as</span> <span class="nn">poutine</span>
 <span class="kn">import</span> <span class="nn">torch</span>
@@ -88,6 +89,7 @@
     <span class="n">experiment</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">design_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="n">feature_fn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">response_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;unit_interval&quot;</span><span class="p">,</span>
     <span class="n">inference</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;svi&quot;</span><span class="p">,</span>
     <span class="n">mcmc_num_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span><span class="p">,</span>
@@ -111,23 +113,33 @@
 <span class="sd">    :param dict experiment: A dict containing all old experiment data.</span>
 <span class="sd">    :param int design_size: Number of designs to try to return (sometimes</span>
 <span class="sd">        fewer designs are found).</span>
+<span class="sd">    :param callable feature_fn: An optional callback to generate additional</span>
+<span class="sd">        features.</span>
 <span class="sd">    :param str response_type: Type of response, one of: &quot;real&quot;, &quot;unit_interval&quot;.</span>
 <span class="sd">    :param str inference: Inference algorithm, one of: &quot;svi&quot;, &quot;mcmc&quot;.</span>
 <span class="sd">    :returns: A design as a set of tuples of choices.</span>
 <span class="sd">    :rtype: set</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Compute extra features.</span>
+    <span class="n">extra_features</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">feature_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">extra_features</span> <span class="o">=</span> <span class="n">feature_fn</span><span class="p">(</span><span class="n">experiment</span><span class="p">[</span><span class="s2">&quot;sequences&quot;</span><span class="p">])</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">extra_features</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span>
+
     <span class="c1"># Pass max_batch_id separately as a python int to allow jitting.</span>
     <span class="n">max_batch_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">experiment</span><span class="p">[</span><span class="s2">&quot;batch_ids&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
 
-    <span class="nd">@poutine</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="n">thompson_temperature</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">hot_model</span><span class="p">():</span>
-        <span class="k">return</span> <span class="n">model</span><span class="p">(</span>
-            <span class="n">schema</span><span class="p">,</span>
-            <span class="n">feature_blocks</span><span class="p">,</span>
-            <span class="n">experiment</span><span class="p">,</span>
-            <span class="n">max_batch_id</span><span class="o">=</span><span class="n">max_batch_id</span><span class="p">,</span>
-            <span class="n">response_type</span><span class="o">=</span><span class="n">response_type</span><span class="p">,</span>
-        <span class="p">)</span>
+    <span class="n">bound_model</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">schema</span><span class="p">,</span>
+        <span class="n">feature_blocks</span><span class="p">,</span>
+        <span class="n">extra_features</span><span class="p">,</span>
+        <span class="n">experiment</span><span class="p">,</span>
+        <span class="n">max_batch_id</span><span class="o">=</span><span class="n">max_batch_id</span><span class="p">,</span>
+        <span class="n">response_type</span><span class="o">=</span><span class="n">response_type</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">hot_model</span> <span class="o">=</span> <span class="n">poutine</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">bound_model</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">thompson_temperature</span><span class="p">)</span>
 
     <span class="c1"># Fit a posterior distribution over parameters given experiment data.</span>
     <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
@@ -175,6 +187,7 @@
                 <span class="n">constraints</span><span class="p">,</span>
                 <span class="n">gibbs_blocks</span><span class="p">,</span>
                 <span class="n">coefs</span><span class="p">,</span>
+                <span class="n">feature_fn</span><span class="o">=</span><span class="n">feature_fn</span><span class="p">,</span>
                 <span class="n">temperature_schedule</span><span class="o">=</span><span class="n">temperature_schedule</span><span class="p">,</span>
                 <span class="n">log_every</span><span class="o">=</span><span class="n">log_every</span><span class="p">,</span>
             <span class="p">)</span>
