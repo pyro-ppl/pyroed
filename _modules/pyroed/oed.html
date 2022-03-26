@@ -96,8 +96,9 @@
     <span class="n">mcmc_num_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span><span class="p">,</span>
     <span class="n">mcmc_warmup_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span><span class="p">,</span>
     <span class="n">mcmc_num_chains</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-    <span class="n">svi_num_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">201</span><span class="p">,</span>
-    <span class="n">svi_reparam</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">svi_num_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">501</span><span class="p">,</span>
+    <span class="n">svi_reparam</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">svi_plot</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">sa_num_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
     <span class="n">max_tries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
     <span class="n">thompson_temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
@@ -109,7 +110,7 @@
 
 <span class="sd">    This fits a Bayesian model to existing experimental data, and draws</span>
 <span class="sd">    Thompson samples wrt that model. To draw each Thompson sample, this first</span>
-<span class="sd">    samples parameters from the fitted posterior (annealed by</span>
+<span class="sd">    samples parameters from the fitted posterior (with likelihood annealed by</span>
 <span class="sd">    ``thompson_temperature``), then finds an optimal sequenc wrt those</span>
 <span class="sd">    parameters via simulated annealing.</span>
 
@@ -140,12 +141,13 @@
 <span class="sd">        This only works when ``thompson_temperature == 1``.</span>
 <span class="sd">    :param int sa_num_steps: Number of steps to run simulated annealing, at</span>
 <span class="sd">        each Thompson sample.</span>
+<span class="sd">    :param bool svi_plot: If ``inference == &quot;svi&quot;`` whether to plot loss curve.</span>
 <span class="sd">    :param int max_tries: Number of extra Thompson samples to draw in search</span>
 <span class="sd">        of novel sequences to add to the design.</span>
-<span class="sd">    :param float thompson_temperature: Temperature at which Thompson samples</span>
-<span class="sd">        are drawn. Defaults to 1. You may want to increase this if you are have</span>
-<span class="sd">        trouble finding novel designs, i.e. if this function returns fewer</span>
-<span class="sd">        designs than you request.</span>
+<span class="sd">    :param float thompson_temperature: Likelihood annealing temperature at</span>
+<span class="sd">        which Thompson samples are drawn. Defaults to 1. You may want to</span>
+<span class="sd">        increase this if you are have trouble finding novel designs, i.e. if</span>
+<span class="sd">        this function returns fewer designs than you request.</span>
 <span class="sd">    :param bool jit_compile: Optional flag to force jit compilation during</span>
 <span class="sd">        inference. Defaults to safe values for both SVI and MCMC inference.</span>
 <span class="sd">    :param int log_every: Logging interval for internal algorithms. To disable</span>
@@ -171,7 +173,7 @@
 
     <span class="c1"># Pass max_batch_id separately as a python int to allow jitting.</span>
     <span class="n">max_batch_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">experiment</span><span class="p">[</span><span class="s2">&quot;batch_ids&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
-
+    <span class="k">assert</span> <span class="n">thompson_temperature</span> <span class="o">&gt;</span> <span class="mi">0</span>
     <span class="n">bound_model</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
         <span class="n">model</span><span class="p">,</span>
         <span class="n">schema</span><span class="p">,</span>
@@ -180,13 +182,11 @@
         <span class="n">experiment</span><span class="p">,</span>
         <span class="n">max_batch_id</span><span class="o">=</span><span class="n">max_batch_id</span><span class="p">,</span>
         <span class="n">response_type</span><span class="o">=</span><span class="n">response_type</span><span class="p">,</span>
+        <span class="n">likelihood_temperature</span><span class="o">=</span><span class="n">thompson_temperature</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">assert</span> <span class="n">thompson_temperature</span> <span class="o">&gt;</span> <span class="mi">0</span>
-    <span class="k">if</span> <span class="n">thompson_temperature</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">bound_model</span> <span class="o">=</span> <span class="n">poutine</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">bound_model</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">thompson_temperature</span><span class="p">)</span>
-    <span class="c1"># Reparametrization can improve variational inference, but doesn&#39;t work</span>
-    <span class="c1"># with poutine.scale, jit compilation, or mcmc.</span>
-    <span class="k">if</span> <span class="n">inference</span> <span class="o">==</span> <span class="s2">&quot;svi&quot;</span> <span class="ow">and</span> <span class="n">svi_reparam</span> <span class="ow">and</span> <span class="n">thompson_temperature</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="c1"># Reparametrization can improve variational inference,</span>
+    <span class="c1"># but isn&#39;t compatible with with jit compilation or mcmc.</span>
+    <span class="k">if</span> <span class="n">inference</span> <span class="o">==</span> <span class="s2">&quot;svi&quot;</span> <span class="ow">and</span> <span class="n">svi_reparam</span><span class="p">:</span>
         <span class="n">bound_model</span> <span class="o">=</span> <span class="n">AutoReparam</span><span class="p">()(</span><span class="n">bound_model</span><span class="p">)</span>
         <span class="n">poutine</span><span class="o">.</span><span class="n">block</span><span class="p">(</span><span class="n">bound_model</span><span class="p">)()</span>  <span class="c1"># initialize reparam</span>
 
@@ -201,8 +201,8 @@
             <span class="n">sampler</span> <span class="o">=</span> <span class="n">fit_svi</span><span class="p">(</span>
                 <span class="n">bound_model</span><span class="p">,</span>
                 <span class="n">num_steps</span><span class="o">=</span><span class="n">svi_num_steps</span><span class="p">,</span>
+                <span class="n">plot</span><span class="o">=</span><span class="n">svi_plot</span><span class="p">,</span>
                 <span class="n">jit_compile</span><span class="o">=</span><span class="n">jit_compile</span><span class="p">,</span>
-                <span class="n">plot</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                 <span class="n">log_every</span><span class="o">=</span><span class="n">log_every</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="n">inference</span> <span class="o">==</span> <span class="s2">&quot;mcmc&quot;</span><span class="p">:</span>

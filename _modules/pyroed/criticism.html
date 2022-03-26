@@ -97,8 +97,9 @@
     <span class="n">mcmc_num_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span><span class="p">,</span>
     <span class="n">mcmc_warmup_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span><span class="p">,</span>
     <span class="n">mcmc_num_chains</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-    <span class="n">svi_num_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">201</span><span class="p">,</span>
-    <span class="n">svi_reparam</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">svi_num_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">501</span><span class="p">,</span>
+    <span class="n">svi_reparam</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">thompson_temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="n">jit_compile</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">log_every</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
     <span class="n">filename</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -108,7 +109,7 @@
 
 <span class="sd">    :param OrderedDict schema: A schema dict.</span>
 <span class="sd">    :param list feature_blocks: A list of choice blocks for linear regression.</span>
-<span class="sd">    :param dict experiment: A dict containing all old experiment data.</span>
+<span class="sd">    :param dict experiment: A dict containing training data.</span>
 <span class="sd">    :param dict test_data: A dict containing held out test data.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Compute extra features.</span>
@@ -123,8 +124,9 @@
         <span class="n">extra_features</span><span class="p">,</span>
         <span class="n">experiment</span><span class="p">,</span>
         <span class="n">response_type</span><span class="o">=</span><span class="n">response_type</span><span class="p">,</span>
+        <span class="n">likelihood_temperature</span><span class="o">=</span><span class="n">thompson_temperature</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">if</span> <span class="n">svi_reparam</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">inference</span> <span class="o">==</span> <span class="s2">&quot;svi&quot;</span> <span class="ow">and</span> <span class="n">svi_reparam</span><span class="p">:</span>
         <span class="n">bound_model</span> <span class="o">=</span> <span class="n">AutoReparam</span><span class="p">()(</span><span class="n">bound_model</span><span class="p">)</span>
         <span class="n">poutine</span><span class="o">.</span><span class="n">block</span><span class="p">(</span><span class="n">bound_model</span><span class="p">)()</span>  <span class="c1"># initialize reparam</span>
 
@@ -188,7 +190,7 @@
         <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">,</span>
         <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;None&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Pearson $</span><span class="se">\\</span><span class="s2">rho$ = </span><span class="si">{</span><span class="n">corr</span><span class="si">:</span><span class="s2">0.3g</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Pearson $</span><span class="se">\\</span><span class="s2">rho$ = </span><span class="si">{</span><span class="n">corr</span><span class="si">:</span><span class="s2">0.3g</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Observed response&quot;</span><span class="p">)</span>

@@ -73,6 +73,7 @@
 
 <span class="kn">import</span> <span class="nn">pyro</span>
 <span class="kn">import</span> <span class="nn">pyro.distributions</span> <span class="k">as</span> <span class="nn">dist</span>
+<span class="kn">import</span> <span class="nn">pyro.poutine</span> <span class="k">as</span> <span class="nn">poutine</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 
 <span class="kn">from</span> <span class="nn">.typing</span> <span class="kn">import</span> <span class="n">Blocks</span><span class="p">,</span> <span class="n">Coefs</span><span class="p">,</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">validate</span>
@@ -134,6 +135,7 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">max_batch_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">response_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;unit_interval&quot;</span><span class="p">,</span>
+    <span class="n">likelihood_temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="n">quantization_bins</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -215,11 +217,12 @@
     <span class="c1"># This likelihood can be generalized to counts or other datatype.</span>
     <span class="k">with</span> <span class="n">pyro</span><span class="o">.</span><span class="n">plate</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">response_type</span> <span class="o">==</span> <span class="s2">&quot;real&quot;</span><span class="p">:</span>
-            <span class="n">pyro</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
-                <span class="s2">&quot;responses&quot;</span><span class="p">,</span>
-                <span class="n">dist</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="n">within_batch_loc</span><span class="p">,</span> <span class="n">within_batch_scale</span><span class="p">),</span>
-                <span class="n">obs</span><span class="o">=</span><span class="n">experiment</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;responses&quot;</span><span class="p">),</span>
-            <span class="p">)</span>
+            <span class="k">with</span> <span class="n">poutine</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="n">likelihood_temperature</span><span class="p">):</span>
+                <span class="n">pyro</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
+                    <span class="s2">&quot;responses&quot;</span><span class="p">,</span>
+                    <span class="n">dist</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="n">within_batch_loc</span><span class="p">,</span> <span class="n">within_batch_scale</span><span class="p">),</span>
+                    <span class="n">obs</span><span class="o">=</span><span class="n">experiment</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;responses&quot;</span><span class="p">),</span>
+                <span class="p">)</span>
 
         <span class="k">elif</span> <span class="n">response_type</span> <span class="o">==</span> <span class="s2">&quot;unit_interval&quot;</span><span class="p">:</span>
             <span class="n">logits</span> <span class="o">=</span> <span class="n">pyro</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
@@ -232,11 +235,12 @@
             <span class="n">response</span> <span class="o">=</span> <span class="n">experiment</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;responses&quot;</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">response</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># during inference</span>
                 <span class="n">quantized_obs</span> <span class="o">=</span> <span class="p">(</span><span class="n">response</span> <span class="o">*</span> <span class="n">quantization_bins</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">()</span>
-            <span class="n">quantized_obs</span> <span class="o">=</span> <span class="n">pyro</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
-                <span class="s2">&quot;quantized_response&quot;</span><span class="p">,</span>
-                <span class="n">dist</span><span class="o">.</span><span class="n">Binomial</span><span class="p">(</span><span class="n">quantization_bins</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">),</span>
-                <span class="n">obs</span><span class="o">=</span><span class="n">quantized_obs</span><span class="p">,</span>
-            <span class="p">)</span>
+            <span class="k">with</span> <span class="n">poutine</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="n">likelihood_temperature</span><span class="p">):</span>
+                <span class="n">quantized_obs</span> <span class="o">=</span> <span class="n">pyro</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
+                    <span class="s2">&quot;quantized_response&quot;</span><span class="p">,</span>
+                    <span class="n">dist</span><span class="o">.</span><span class="n">Binomial</span><span class="p">(</span><span class="n">quantization_bins</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">),</span>
+                    <span class="n">obs</span><span class="o">=</span><span class="n">quantized_obs</span><span class="p">,</span>
+                <span class="p">)</span>
             <span class="k">assert</span> <span class="n">quantized_obs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
             <span class="k">if</span> <span class="n">response</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># during simulation</span>
                 <span class="n">pyro</span><span class="o">.</span><span class="n">deterministic</span><span class="p">(</span><span class="s2">&quot;responses&quot;</span><span class="p">,</span> <span class="n">quantized_obs</span> <span class="o">/</span> <span class="n">quantization_bins</span><span class="p">)</span>
