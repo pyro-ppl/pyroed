@@ -18,7 +18,7 @@ high-affinity DNA sequences than random experimentation in which designs
 (DNA sequences) are chosen at random.
 
 The results of this script are visualized here:
-https://github.com/broadinstitute/pyroed/blob/main/examples/oed_vs_rand.png
+https://github.com/pyro-ppl/pyroed/blob/main/examples/oed_vs_rand.png
 """
 
 # type: ignore

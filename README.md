@@ -1,5 +1,5 @@
-[![Build Status](https://github.com/broadinstitute/pyroed/workflows/CI/badge.svg)](https://github.com/broadinstitute/pyroed/actions)
-[![Docs](https://img.shields.io/badge/api-docs-blue)](https://broadinstitute.github.io/pyroed/)
+[![Build Status](https://github.com/pyro-ppl/pyroed/workflows/CI/badge.svg)](https://github.com/pyro-ppl/pyroed/actions)
+[![Docs](https://img.shields.io/badge/api-docs-blue)](https://pyro-ppl.github.io/pyroed/)
 
 # Bayesian optimization of discrete sequences
 
@@ -7,20 +7,20 @@ Pyroed is a framework for model-based optimization of sequences of discrete
 choices with constraints among choices.
 Pyroed aims to address the regime where there is very little data (100-10000
 observations), small batch size (say 10-100), short sequences (length 2-100) of
-heterogeneous choice sets, and possibly with [constraints](https://broadinstitute.github.io/pyroed/constraints.html) among choices at
+heterogeneous choice sets, and possibly with [constraints](https://pyro-ppl.github.io/pyroed/constraints.html) among choices at
 different positions in the sequence.
 
 Under the hood, Pyroed performs
-[Thompson sampling](https://broadinstitute.github.io/pyroed/internals.html#pyroed.oed.thompson_sample)
+[Thompson sampling](https://pyro-ppl.github.io/pyroed/internals.html#pyroed.oed.thompson_sample)
 against a hierarchical Bayesian
-[linear regression model](https://broadinstitute.github.io/pyroed/internals.html#pyroed.models.model)
+[linear regression model](https://pyro-ppl.github.io/pyroed/internals.html#pyroed.models.model)
 that is automatically generated from a Pyroed problem specification, deferring
 to [Pyro](https://pyro.ai) for Bayesian inference (either
-[variational](https://broadinstitute.github.io/pyroed/internals.html#pyroed.inference.fit_svi)
+[variational](https://pyro-ppl.github.io/pyroed/internals.html#pyroed.inference.fit_svi)
 or
-[MCMC](https://broadinstitute.github.io/pyroed/internals.html#pyroed.inference.fit_mcmc))
+[MCMC](https://pyro-ppl.github.io/pyroed/internals.html#pyroed.inference.fit_mcmc))
 and to
-[annealed Gibbs sampling](https://broadinstitute.github.io/pyroed/internals.html#pyroed.optimizers.optimize_simulated_annealing)
+[annealed Gibbs sampling](https://pyro-ppl.github.io/pyroed/internals.html#pyroed.optimizers.optimize_simulated_annealing)
 for discrete optimization.  All numerics is performed by
 [PyTorch](https://pytorch.org).
 
@@ -28,11 +28,11 @@ for discrete optimization.  All numerics is performed by
 
 You can install directly from github via
 ```sh
-pip install https://github.com/broadinstitute/pyroed/archive/main.zip
+pip install https://github.com/pyro-ppl/pyroed/archive/main.zip
 ```
 For developing Pyroed you can install from source
 ```sh
-git clone git@github.com:broadinstitute/pyroed
+git clone git@github.com:pyro-ppl/pyroed
 cd pyroed
 pip install -e .
 ```
@@ -119,7 +119,7 @@ We repeat step 3 as long as we like.
 ## Demo: Semi-Synthetic Experiment 
 
 For a more in-depth demonstration of Pyroed usage in practice on some transcription factor data
-see [`rollout_tf8.py`](https://github.com/broadinstitute/pyroed/blob/main/examples/rollout_tf8.py)
-and [`tf8_demo.ipynb`](https://github.com/broadinstitute/pyroed/blob/main/examples/tf8_demo.ipynb).
+see [`rollout_tf8.py`](https://github.com/pyro-ppl/pyroed/blob/main/examples/rollout_tf8.py)
+and [`tf8_demo.ipynb`](https://github.com/pyro-ppl/pyroed/blob/main/examples/tf8_demo.ipynb).
 
 ![plot](./examples/oed_vs_rand.png)

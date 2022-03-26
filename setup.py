@@ -25,7 +25,7 @@ setup(
     long_description_content_type="text/markdown",
     packages=find_packages(include=["pyroed"]),
     package_data={"pyroed": ["py.typed"]},
-    url="https://github.com/broadinstitute/pyroed",
+    url="https://github.com/pyro-ppl/pyroed",
     author="Pyro team at the Broad Institute of MIT and Harvard",
     author_email="fritz.obermeyer@gmail.com",
     install_requires=[
