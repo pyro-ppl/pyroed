@@ -3,6 +3,7 @@ from typing import Dict, Optional
 
 import pyro
 import pyro.distributions as dist
+import pyro.poutine as poutine
 import torch
 
 from .typing import Blocks, Coefs, Schema, validate
@@ -64,6 +65,7 @@ def model(
     *,
     max_batch_id: Optional[int] = None,
     response_type: str = "unit_interval",
+    likelihood_temperature: float = 1.0,
     quantization_bins: int = 100,
 ):
     """
@@ -145,11 +147,12 @@ def model(
     # This likelihood can be generalized to counts or other datatype.
     with pyro.plate("data", N):
         if response_type == "real":
-            pyro.sample(
-                "responses",
-                dist.Normal(within_batch_loc, within_batch_scale),
-                obs=experiment.get("responses"),
-            )
+            with poutine.scale(scale=1 / likelihood_temperature):
+                pyro.sample(
+                    "responses",
+                    dist.Normal(within_batch_loc, within_batch_scale),
+                    obs=experiment.get("responses"),
+                )
 
         elif response_type == "unit_interval":
             logits = pyro.sample(
@@ -162,11 +165,12 @@ def model(
             response = experiment.get("responses")
             if response is not None:  # during inference
                 quantized_obs = (response * quantization_bins).round()
-            quantized_obs = pyro.sample(
-                "quantized_response",
-                dist.Binomial(quantization_bins, logits=logits),
-                obs=quantized_obs,
-            )
+            with poutine.scale(scale=1 / likelihood_temperature):
+                quantized_obs = pyro.sample(
+                    "quantized_response",
+                    dist.Binomial(quantization_bins, logits=logits),
+                    obs=quantized_obs,
+                )
             assert quantized_obs is not None
             if response is None:  # during simulation
                 pyro.deterministic("responses", quantized_obs / quantization_bins)

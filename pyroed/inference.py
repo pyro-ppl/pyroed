@@ -11,8 +11,8 @@ from pyro.optim import ClippedAdam
 def fit_svi(
     model: Callable,
     *,
-    lr: float = 0.01,
-    num_steps: int = 201,
+    lr: float = 0.02,
+    num_steps: int = 501,
     jit_compile: bool = False,
     log_every: int = 100,
     plot: bool = False,

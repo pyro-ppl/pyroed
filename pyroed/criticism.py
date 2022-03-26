@@ -27,8 +27,9 @@ def criticize(
     mcmc_num_samples: int = 500,
     mcmc_warmup_steps: int = 500,
     mcmc_num_chains: int = 1,
-    svi_num_steps: int = 201,
-    svi_reparam: bool = False,
+    svi_num_steps: int = 501,
+    svi_reparam: bool = True,
+    thompson_temperature: float = 1.0,
     jit_compile: bool = False,
     log_every: int = 100,
     filename: Optional[str] = None,
@@ -38,7 +39,7 @@ def criticize(
 
     :param OrderedDict schema: A schema dict.
     :param list feature_blocks: A list of choice blocks for linear regression.
-    :param dict experiment: A dict containing all old experiment data.
+    :param dict experiment: A dict containing training data.
     :param dict test_data: A dict containing held out test data.
     """
     # Compute extra features.
@@ -53,8 +54,9 @@ def criticize(
         extra_features,
         experiment,
         response_type=response_type,
+        likelihood_temperature=thompson_temperature,
     )
-    if svi_reparam:
+    if inference == "svi" and svi_reparam:
         bound_model = AutoReparam()(bound_model)
         poutine.block(bound_model)()  # initialize reparam
 
@@ -118,7 +120,7 @@ def criticize(
         marker="o",
         linestyle="None",
     )
-    plt.text(0.2, 0.8, f"Pearson $\\rho$ = {corr:0.3g}", ha="center", va="center")
+    plt.text(0.2, 0.9, f"Pearson $\\rho$ = {corr:0.3g}", ha="center", va="center")
     plt.xlim(0, 1)
     plt.ylim(0, 1)
     plt.xlabel("Observed response")

@@ -26,8 +26,9 @@ def thompson_sample(
     mcmc_num_samples: int = 500,
     mcmc_warmup_steps: int = 500,
     mcmc_num_chains: int = 1,
-    svi_num_steps: int = 201,
-    svi_reparam: bool = False,
+    svi_num_steps: int = 501,
+    svi_reparam: bool = True,
+    svi_plot: bool = False,
     sa_num_steps: int = 1000,
     max_tries: int = 1000,
     thompson_temperature: float = 1.0,
@@ -39,7 +40,7 @@ def thompson_sample(
 
     This fits a Bayesian model to existing experimental data, and draws
     Thompson samples wrt that model. To draw each Thompson sample, this first
-    samples parameters from the fitted posterior (annealed by
+    samples parameters from the fitted posterior (with likelihood annealed by
     ``thompson_temperature``), then finds an optimal sequenc wrt those
     parameters via simulated annealing.
 
@@ -70,12 +71,13 @@ def thompson_sample(
         This only works when ``thompson_temperature == 1``.
     :param int sa_num_steps: Number of steps to run simulated annealing, at
         each Thompson sample.
+    :param bool svi_plot: If ``inference == "svi"`` whether to plot loss curve.
     :param int max_tries: Number of extra Thompson samples to draw in search
         of novel sequences to add to the design.
-    :param float thompson_temperature: Temperature at which Thompson samples
-        are drawn. Defaults to 1. You may want to increase this if you are have
-        trouble finding novel designs, i.e. if this function returns fewer
-        designs than you request.
+    :param float thompson_temperature: Likelihood annealing temperature at
+        which Thompson samples are drawn. Defaults to 1. You may want to
+        increase this if you are have trouble finding novel designs, i.e. if
+        this function returns fewer designs than you request.
     :param bool jit_compile: Optional flag to force jit compilation during
         inference. Defaults to safe values for both SVI and MCMC inference.
     :param int log_every: Logging interval for internal algorithms. To disable
@@ -101,7 +103,7 @@ def thompson_sample(
 
     # Pass max_batch_id separately as a python int to allow jitting.
     max_batch_id = int(experiment["batch_ids"].max())
-
+    assert thompson_temperature > 0
     bound_model = functools.partial(
         model,
         schema,
@@ -110,13 +112,11 @@ def thompson_sample(
         experiment,
         max_batch_id=max_batch_id,
         response_type=response_type,
+        likelihood_temperature=thompson_temperature,
     )
-    assert thompson_temperature > 0
-    if thompson_temperature != 1:
-        bound_model = poutine.scale(bound_model, 1 / thompson_temperature)
-    # Reparametrization can improve variational inference, but doesn't work
-    # with poutine.scale, jit compilation, or mcmc.
-    if inference == "svi" and svi_reparam and thompson_temperature == 1:
+    # Reparametrization can improve variational inference,
+    # but isn't compatible with with jit compilation or mcmc.
+    if inference == "svi" and svi_reparam:
         bound_model = AutoReparam()(bound_model)
         poutine.block(bound_model)()  # initialize reparam
 
@@ -131,8 +131,8 @@ def thompson_sample(
             sampler = fit_svi(
                 bound_model,
                 num_steps=svi_num_steps,
+                plot=svi_plot,
                 jit_compile=jit_compile,
-                plot=False,
                 log_every=log_every,
             )
         elif inference == "mcmc":
