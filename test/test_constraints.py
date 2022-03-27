@@ -5,6 +5,7 @@ from pyroed.api import encode_design
 from pyroed.constraints import (
     AllDifferent,
     And,
+    Function,
     Iff,
     IfThen,
     Not,
@@ -60,6 +61,45 @@ def test_immune_sequence():
     assert actual[3] == [True, True, True, True, False, True, True]
     assert actual[4] == [True, True, True, True, True, False, True]
     assert actual[5] == [True, True, True, True, True, True, False]
+
+
+def test_function():
+    SCHEMA = OrderedDict()
+    SCHEMA["foo"] = ["a", "b", "c", None]
+    SCHEMA["bar"] = ["a", "b", None]
+
+    CONSTRAINTS = [
+        Function(lambda x: x.sum(-1) <= 0),
+        Function(lambda x: x.sum(-1) <= 1),
+        Function(lambda x: x.sum(-1) <= 2),
+        Function(lambda x: x.sum(-1) <= 3),
+        Function(lambda x: x.sum(-1) <= 4),
+        Function(lambda x: x.sum(-1) <= 5),
+    ]
+
+    design: List[List[Optional[str]]] = [
+        ["a", "a"],
+        ["a", "b"],
+        ["a", None],
+        ["b", "a"],
+        ["b", "b"],
+        ["b", None],
+        ["c", "a"],
+        ["c", "b"],
+        ["c", None],
+        [None, "a"],
+        [None, "b"],
+        [None, None],
+    ]
+
+    sequences = encode_design(SCHEMA, design)
+    actual = [c(SCHEMA, sequences).tolist() for c in CONSTRAINTS]
+    assert stringify(actual[0]) == "100000000000"
+    assert stringify(actual[1]) == "110100000000"
+    assert stringify(actual[2]) == "111110100000"
+    assert stringify(actual[3]) == "111111110100"
+    assert stringify(actual[4]) == "111111111110"
+    assert stringify(actual[5]) == "111111111111"
 
 
 def test_takes_value():

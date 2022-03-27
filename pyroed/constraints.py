@@ -2,8 +2,8 @@
 This module implements a declarative langauge of constraints on sequence
 values. The language consists of:
 
-- Atomic constraints :class:`TakesValue`, :class:`TakesValues`, and
-  :class:`AllDifferent`
+- Atomic constraints :class:`TakesValue`, :class:`TakesValues`,
+  :class:`AllDifferent`, and :class:`Function`.
 - Logical operations :class:`Not`, :class:`And`, :class:`Or`, :class:`Xor`,
   :class:`IfThen`, and :class:`Iff`.
 
@@ -16,7 +16,7 @@ Examples in this file will reference the following ``SCHEMA``::
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
 
 import torch
 
@@ -33,6 +33,38 @@ class Constraint(ABC):
     @abstractmethod
     def __call__(self, schema: Schema, choices: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError
+
+
+class Function(Constraint):
+    """
+    Constrains the choices by a black box user-provided function.
+
+    Example::
+
+        def constraint(choices: torch.Tensor):
+            # Put an upper bound on the sequences.
+            return choices.float().sum(-1) < 8
+
+        CONSTRAINTS.append(Function(constraint))
+
+    :param callable fn: A function inputting a batch of encoded sequences and
+        returning a batched feasability tensor.
+    """
+
+    def __init__(self, fn: Callable[[torch.Tensor], torch.Tensor]):
+        super().__init__()
+        self.fn = fn
+
+    def __str__(self):
+        return f"Function({self.fn})"
+
+    def __call__(self, schema: Schema, choices: torch.Tensor):
+        ok = self.fn(choices)
+        assert isinstance(ok, torch.Tensor)
+        assert ok.dtype == torch.bool
+        if not torch._C._get_tracing_state():
+            assert ok.shape == choices.shape[:-1]
+        return ok
 
 
 class TakesValue(Constraint):
