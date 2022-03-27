@@ -75,8 +75,8 @@
 <p>This module implements a declarative langauge of constraints on sequence
 values. The language consists of:</p>
 <ul class="simple">
-<li><p>Atomic constraints <a class="reference internal" href="#pyroed.constraints.TakesValue" title="pyroed.constraints.TakesValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">TakesValue</span></code></a>, <a class="reference internal" href="#pyroed.constraints.TakesValues" title="pyroed.constraints.TakesValues"><code class="xref py py-class docutils literal notranslate"><span class="pre">TakesValues</span></code></a>, and
-<a class="reference internal" href="#pyroed.constraints.AllDifferent" title="pyroed.constraints.AllDifferent"><code class="xref py py-class docutils literal notranslate"><span class="pre">AllDifferent</span></code></a></p></li>
+<li><p>Atomic constraints <a class="reference internal" href="#pyroed.constraints.TakesValue" title="pyroed.constraints.TakesValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">TakesValue</span></code></a>, <a class="reference internal" href="#pyroed.constraints.TakesValues" title="pyroed.constraints.TakesValues"><code class="xref py py-class docutils literal notranslate"><span class="pre">TakesValues</span></code></a>,
+<a class="reference internal" href="#pyroed.constraints.AllDifferent" title="pyroed.constraints.AllDifferent"><code class="xref py py-class docutils literal notranslate"><span class="pre">AllDifferent</span></code></a>, and <a class="reference internal" href="#pyroed.constraints.Function" title="pyroed.constraints.Function"><code class="xref py py-class docutils literal notranslate"><span class="pre">Function</span></code></a>.</p></li>
 <li><p>Logical operations <a class="reference internal" href="#pyroed.constraints.Not" title="pyroed.constraints.Not"><code class="xref py py-class docutils literal notranslate"><span class="pre">Not</span></code></a>, <a class="reference internal" href="#pyroed.constraints.And" title="pyroed.constraints.And"><code class="xref py py-class docutils literal notranslate"><span class="pre">And</span></code></a>, <a class="reference internal" href="#pyroed.constraints.Or" title="pyroed.constraints.Or"><code class="xref py py-class docutils literal notranslate"><span class="pre">Or</span></code></a>, <a class="reference internal" href="#pyroed.constraints.Xor" title="pyroed.constraints.Xor"><code class="xref py py-class docutils literal notranslate"><span class="pre">Xor</span></code></a>,
 <a class="reference internal" href="#pyroed.constraints.IfThen" title="pyroed.constraints.IfThen"><code class="xref py py-class docutils literal notranslate"><span class="pre">IfThen</span></code></a>, and <a class="reference internal" href="#pyroed.constraints.Iff" title="pyroed.constraints.Iff"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iff</span></code></a>.</p></li>
 </ul>
@@ -93,6 +93,27 @@ values. The language consists of:</p>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></a></p>
 <p>Abstract base class for constraints.</p>
 <p>Derived classes must implement the <code class="xref py py-meth docutils literal notranslate"><span class="pre">__call__()</span></code> method.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyroed.constraints.Function">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyroed.constraints.</span></span><span class="sig-name descname"><span class="pre">Function</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.10)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/master/tensors.html#torch.Tensor" title="(in PyTorch v1.12)"><span class="pre">torch.Tensor</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://pytorch.org/docs/master/tensors.html#torch.Tensor" title="(in PyTorch v1.12)"><span class="pre">torch.Tensor</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyroed/constraints.html#Function"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyroed.constraints.Function" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyroed.constraints.Constraint" title="pyroed.constraints.Constraint"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyroed.constraints.Constraint</span></code></a></p>
+<p>Constrains the choices by a black box user-provided function.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">constraint</span><span class="p">(</span><span class="n">choices</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+    <span class="c1"># Put an upper bound on the sequences.</span>
+    <span class="k">return</span> <span class="n">choices</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">8</span>
+
+<span class="n">CONSTRAINTS</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Function</span><span class="p">(</span><span class="n">constraint</span><span class="p">))</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>fn</strong> (<em>callable</em>) – A function inputting a batch of encoded sequences and
+returning a batched feasability tensor.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py class">
