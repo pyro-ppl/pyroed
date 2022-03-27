@@ -31,10 +31,11 @@ measuring sequences.
 - :func:`get_next_design` suggests a next set of sequences to test, and
 - :func:`update_experiment` updates an experiment dict with measured responses.
 
-Note that :func:`get_next_design` is merely an algorithmic suggestion, you can
-ignore the suggestion or measure a different set of sequences if you want. For
-example if some of your measurements are lost due to technical reasons, you can
-simply pass a subset of your design to :func:`update_experiment`.
+Note that :func:`get_next_design` merely retuns suggested sequences; you can
+ignore these suggestions or measure a different set of sequences if you want.
+For example if some of your measurements are lost due to technical reasons, you
+can simply pass a subset of the suggested design back to
+:func:`update_experiment`.
 """
 
 from collections import OrderedDict
